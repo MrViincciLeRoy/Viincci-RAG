@@ -9,9 +9,9 @@ import sys
 from pathlib import Path
 
 try:
-    from FlaskApp.services.v4.ConfigManager import ConfigManager
-    from FlaskApp.services.v4.EnhancedSpider import UniversalResearchSpider, research
-    from FlaskApp.services.v4.ApiMonitor import SerpAPIMonitor, check_api_credits
+    from v4.ConfigManager import ConfigManager
+    from v4.EnhancedSpider import UniversalResearchSpider, research
+    from v4.ApiMonitor import SerpAPIMonitor, check_api_credits
     from FlaskApp.services.v4.RagSys import RAGSystem
 except ImportError:
     print("❌ Error: Could not import required modules")
