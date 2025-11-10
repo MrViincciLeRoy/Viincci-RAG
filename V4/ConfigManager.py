@@ -87,7 +87,7 @@ class ConfigManager:
             "include_front_matter": True,
             "fetch_images": True,
             "embedding_model": "all-MiniLM-L6-v2",
-            "llm_model": "LiquidAI/LFM-40B-MoE",  # Updated to best LiquidAI model
+            "llm_model": "LiquidAI/LFM-40B-MoE",
             "config_path": "v4/config/article_config.json",
             "database_path": "v4/db/research_data.db",
             "device": "cpu",
@@ -159,6 +159,32 @@ class ConfigManager:
         }
         self._configs['search_config'] = self._load_config('search_config.json', search_config_default)
         
+        # Article Config (with headings and content settings)
+        article_config_default = {
+            "headings": [
+                {
+                    "title": "The Complete Guide to {plant_name}",
+                    "subtitle": "Discover the facts, care tips, and benefits of this remarkable plant"
+                },
+                {
+                    "title": "Everything You Need to Know About {plant_name}",
+                    "subtitle": "A comprehensive guide to growing and caring for this beautiful species"
+                }
+            ],
+            "image_settings": {
+                "width": 800,
+                "height": 600,
+                "default_fallback": "/img/posts/default-plant.jpg"
+            },
+            "content_cleaning": {
+                "remove_source_markers": True,
+                "remove_incomplete_paragraphs": True,
+                "min_paragraph_length": 50,
+                "remove_citations": True
+            }
+        }
+        self._configs['article_config'] = self._load_config('article_config.json', article_config_default)
+        
         # Load domain reliability (will be domain-specific)
         self._load_domain_reliability()
     
@@ -174,7 +200,8 @@ class ConfigManager:
                     "interesting facts",
                     "care and cultivation guide",
                     "physical description and characteristics"
-                ]
+                ],
+                "keywords": ["plant", "botanical", "species", "cultivation"]
             },
             "medical": {
                 "name": "Medical Research",
@@ -185,7 +212,8 @@ class ConfigManager:
                     "what are the treatments",
                     "what causes this condition",
                     "what are the risk factors"
-                ]
+                ],
+                "keywords": ["medical", "disease", "treatment", "diagnosis"]
             },
             "carpentry": {
                 "name": "Carpentry & Woodworking",
@@ -196,7 +224,8 @@ class ConfigManager:
                     "what tools are required",
                     "safety considerations",
                     "best practices and tips"
-                ]
+                ],
+                "keywords": ["wood", "carpentry", "woodworking", "construction"]
             },
             "mathematics": {
                 "name": "Mathematics Research",
@@ -207,7 +236,8 @@ class ConfigManager:
                     "what are the applications",
                     "proof and derivation",
                     "historical context and development"
-                ]
+                ],
+                "keywords": ["mathematics", "theorem", "proof", "formula"]
             }
         }
         self._configs['domains'] = self._load_config('domains.json', domains_config_default)
@@ -335,7 +365,33 @@ class ConfigManager:
         domain_info = self.get_domain_info(domain)
         return domain_info.get('questions', [])
     
-    # Existing methods (keep all previous methods)
+    # Article Configuration Methods
+    def get_headings(self) -> List[Dict]:
+        """Get article heading templates."""
+        return self._configs.get('article_config', {}).get('headings', [])
+    
+    def get_image_settings(self) -> Dict:
+        """Get image configuration settings."""
+        return self._configs.get('article_config', {}).get('image_settings', {
+            "width": 800,
+            "height": 600,
+            "default_fallback": "/img/posts/default-plant.jpg"
+        })
+    
+    def get_content_cleaning_settings(self) -> Dict:
+        """Get content cleaning configuration."""
+        return self._configs.get('article_config', {}).get('content_cleaning', {
+            "remove_source_markers": True,
+            "remove_incomplete_paragraphs": True,
+            "min_paragraph_length": 50,
+            "remove_citations": True
+        })
+    
+    def get_fetch_images(self) -> bool:
+        """Check if image fetching is enabled."""
+        return self._configs.get('ai_settings', {}).get('fetch_images', True)
+    
+    # Existing methods
     def get_ai_settings(self) -> Dict[str, Any]:
         return self._configs['ai_settings']
     
@@ -376,6 +432,10 @@ class ConfigManager:
     def get_search_questions(self) -> list:
         """Get search questions based on current domain."""
         return self.get_domain_questions()
+    
+    def get_search_config(self) -> Dict:
+        """Get search configuration."""
+        return self._configs['search_config']
     
     def get_api_key_env_name(self) -> str:
         return self._configs['config'].get('api', {}).get('serpapi_key_env', 'SERP_API_KEY')
