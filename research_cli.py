@@ -9,13 +9,13 @@ import sys
 from pathlib import Path
 
 try:
-    from v4.ConfigManager import ConfigManager
-    from v4.EnhancedSpider import UniversalResearchSpider, research
-    from v4.ApiMonitor import SerpAPIMonitor, check_api_credits
-    from FlaskApp.services.v4.RagSys import RAGSystem
-except ImportError:
-    print("❌ Error: Could not import required modules")
-    print("Please ensure the FlaskApp package is properly installed")
+    from V4.ConfigManager import ConfigManager
+    from V4.Spider import UniversalResearchSpider, research
+    from V4.ApiMonitor import SerpAPIMonitor, check_api_credits
+    from V4.RagSys import RAGSystem
+except ImportError as e:
+    print(f"❌ Error: Could not import required modules: {e}")
+    print("Please ensure the V4 package is properly installed")
     sys.exit(1)
 
 
@@ -31,7 +31,9 @@ def list_domains(config: ConfigManager):
         
         print(f"🔹 {domain}{current}")
         print(f"   {info.get('description', 'No description')}")
-        print(f"   Keywords: {', '.join(info.get('keywords', [])[:5])}")
+        keywords = info.get('keywords', [])
+        if keywords:
+            print(f"   Keywords: {', '.join(keywords[:5])}")
         print()
 
 
@@ -101,6 +103,132 @@ def perform_research(query: str, domain: str, config: ConfigManager, use_rag: bo
             print("   Research results still saved to file")
 
 
+def show_domain_info(domain: str, config: ConfigManager):
+    """Show detailed information about a specific domain."""
+    if domain not in config.get_available_domains():
+        print(f"\n❌ Domain '{domain}' not found")
+        return
+    
+    info = config.get_domain_info(domain)
+    
+    print("\n" + "="*70)
+    print(f"🔬 Domain: {domain.upper()}")
+    print("="*70)
+    print(f"\nName: {info.get('name', 'N/A')}")
+    print(f"Description: {info.get('description', 'N/A')}")
+    
+    print("\n📚 Primary Sources:")
+    for source in info.get('primary_sources', []):
+        print(f"  • {source.replace('_', ' ').title()}")
+    
+    print("\n❓ Research Questions:")
+    for i, question in enumerate(info.get('questions', []), 1):
+        print(f"  {i}. {question}")
+    
+    print("\n🔑 Keywords:")
+    keywords = info.get('keywords', [])
+    if keywords:
+        print(f"  {', '.join(keywords)}")
+    else:
+        print("  No keywords defined")
+    
+    print("\n" + "="*70 + "\n")
+
+
+def test_system(config: ConfigManager):
+    """Run system tests to verify everything is working."""
+    print("\n" + "="*70)
+    print("🧪 System Test - Universal Research System V4")
+    print("="*70 + "\n")
+    
+    tests_passed = 0
+    tests_failed = 0
+    
+    # Test 1: Configuration
+    print("1. Testing Configuration...")
+    try:
+        domains = config.get_available_domains()
+        assert len(domains) > 0, "No domains available"
+        print(f"   ✅ Found {len(domains)} domains")
+        tests_passed += 1
+    except Exception as e:
+        print(f"   ❌ Failed: {e}")
+        tests_failed += 1
+    
+    # Test 2: Domain Switching
+    print("\n2. Testing Domain Switching...")
+    try:
+        original_domain = config.get_current_domain()
+        test_domain = 'medical' if original_domain != 'medical' else 'botany'
+        
+        config.switch_domain(test_domain)
+        assert config.get_current_domain() == test_domain
+        config.switch_domain(original_domain)
+        
+        print(f"   ✅ Successfully switched domains")
+        tests_passed += 1
+    except Exception as e:
+        print(f"   ❌ Failed: {e}")
+        tests_failed += 1
+    
+    # Test 3: API Monitor
+    print("\n3. Testing API Monitor...")
+    try:
+        monitor = SerpAPIMonitor(config)
+        assert monitor.warning_threshold == 100
+        assert monitor.critical_threshold == 20
+        print(f"   ✅ API Monitor initialized correctly")
+        tests_passed += 1
+    except Exception as e:
+        print(f"   ❌ Failed: {e}")
+        tests_failed += 1
+    
+    # Test 4: RAG System
+    print("\n4. Testing RAG System...")
+    try:
+        rag = RAGSystem(config)
+        assert rag.embedding_model is not None
+        
+        # Test index building
+        test_texts = ["Test document 1", "Test document 2"]
+        test_metadata = [{"source": "test1"}, {"source": "test2"}]
+        rag.build_index(test_texts, test_metadata)
+        
+        assert rag.index.ntotal == 2
+        print(f"   ✅ RAG System working correctly")
+        tests_passed += 1
+    except Exception as e:
+        print(f"   ❌ Failed: {e}")
+        tests_failed += 1
+    
+    # Test 5: Article Generator
+    print("\n5. Testing Article Generator...")
+    try:
+        from V4.UniversalArticleGenerator import UniversalArticleGenerator
+        generator = UniversalArticleGenerator(config, fetch_images=False)
+        assert generator is not None
+        
+        sections = generator.get_domain_sections("Test Topic")
+        assert len(sections) > 0
+        print(f"   ✅ Article Generator initialized")
+        tests_passed += 1
+    except Exception as e:
+        print(f"   ❌ Failed: {e}")
+        tests_failed += 1
+    
+    # Summary
+    print("\n" + "="*70)
+    print(f"Test Results: {tests_passed} passed, {tests_failed} failed")
+    print("="*70 + "\n")
+    
+    if tests_failed == 0:
+        print("✅ All systems operational!\n")
+        return True
+    else:
+        print("⚠️  Some tests failed. Check the output above.\n")
+        return False
+
+
 def main():
     """Main CLI entry point."""
     parser = argparse.ArgumentParser(
@@ -111,8 +239,14 @@ Examples:
   # List available domains
   python research_cli.py --list-domains
   
+  # Show information about a domain
+  python research_cli.py --domain-info medical
+  
   # Check API credits
   python research_cli.py --check-credits
+  
+  # Test the system
+  python research_cli.py --test
   
   # Research in botany domain
   python research_cli.py -q "Rosa rubiginosa" -d botany
@@ -148,9 +282,22 @@ Examples:
     )
     
     parser.add_argument(
+        '--domain-info',
+        type=str,
+        metavar='DOMAIN',
+        help='Show detailed information about a specific domain'
+    )
+    
+    parser.add_argument(
         '--check-credits',
         action='store_true',
         help='Check SerpAPI credit status'
+    )
+    
+    parser.add_argument(
+        '--test',
+        action='store_true',
+        help='Run system tests to verify everything is working'
     )
     
     parser.add_argument(
@@ -180,25 +327,38 @@ Examples:
     args = parser.parse_args()
     
     # Initialize config
-    config = ConfigManager(
-        config_dir=args.config_dir,
-        domain=args.domain,
-        verbose=args.verbose
-    )
+    try:
+        config = ConfigManager(
+            config_dir=args.config_dir,
+            domain=args.domain,
+            verbose=args.verbose
+        )
+    except Exception as e:
+        print(f"❌ Error initializing configuration: {e}")
+        sys.exit(1)
     
     # Handle commands
     if args.list_domains:
         list_domains(config)
         return
     
-    if args.check_credits:
-        check_credits(config)
+    if args.domain_info:
+        show_domain_info(args.domain_info, config)
         return
+    
+    if args.check_credits:
+        can_proceed = check_credits(config)
+        sys.exit(0 if can_proceed else 1)
+    
+    if args.test:
+        success = test_system(config)
+        sys.exit(0 if success else 1)
     
     if not args.query:
         parser.print_help()
-        print("\n❌ Error: Please provide a query with -q/--query")
-        sys.exit(1)
+        print("\n💡 Tip: Use --test to verify your system is working correctly")
+        print("💡 Tip: Use --list-domains to see available research domains")
+        sys.exit(0)
     
     # Validate domain
     if args.domain not in config.get_available_domains():
