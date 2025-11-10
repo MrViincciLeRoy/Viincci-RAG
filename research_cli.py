@@ -187,9 +187,9 @@ To generate actual essays, use --rag flag and ensure research data is available.
 """
 
 
-def add_art_domains():
-    """Add art-specific domains to the configuration"""
-    art_domains = {
+def get_extended_domains():
+    """Get extended domains including art and creative fields (backward compatible)"""
+    extended_domains = {
         "art_history": {
             "name": "Art History Research",
             "description": "Art movements, artists, techniques, and historical periods",
@@ -244,11 +244,60 @@ def add_art_domains():
         }
     }
     
-    return art_domains
+    return extended_domains
+
+
+def check_and_add_extended_domains(config: ConfigManager):
+    """Check if extended domains exist, add them if missing (backward compatible)"""
+    domains_file = Path(config.config_dir) / 'domains.json'
+    
+    # Load existing domains
+    with open(domains_file, 'r') as f:
+        existing_domains = json.load(f)
+    
+    extended = get_extended_domains()
+    added_domains = []
+    
+    # Only add domains that don't exist
+    for domain_key, domain_config in extended.items():
+        if domain_key not in existing_domains:
+            existing_domains[domain_key] = domain_config
+            added_domains.append(domain_key)
+    
+    # Save if any domains were added
+    if added_domains:
+        with open(domains_file, 'w') as f:
+            json.dump(existing_domains, f, indent=2)
+        return added_domains
+    
+    return []
+
+
+def ensure_backward_compatibility(config: ConfigManager):
+    """Ensure all old functionality works with new features"""
+    # Auto-add extended domains if they don't exist
+    added = check_and_add_extended_domains(config)
+    
+    if added:
+        print(f"\n✨ Auto-added {len(added)} new domains: {', '.join(added)}")
+        print("   (All existing domains preserved)")
+    
+    # Verify core domains still exist
+    core_domains = ['botany', 'medical', 'mathematics', 'carpentry']
+    available = config.get_available_domains()
+    
+    for core in core_domains:
+        if core not in available:
+            print(f"⚠️  Warning: Core domain '{core}' missing from configuration")
+    
+    return True
 
 
 def perform_research(args, config: ConfigManager):
-    """Perform research and generate output"""
+    """Perform research and generate output (backward compatible)"""
+    
+    # Ensure backward compatibility - add extended domains if needed
+    ensure_backward_compatibility(config)
     
     print(f"\n🔍 Starting research...")
     print(f"   Query: {args.query}")
@@ -258,10 +307,12 @@ def perform_research(args, config: ConfigManager):
     if args.content_type in ['poem', 'essay']:
         print(f"   Content Type: {args.content_type}")
     
-    # Switch domain
-    config.switch_domain(args.domain)
+    # Switch domain (supports both old and new domains)
+    if not config.switch_domain(args.domain):
+        print(f"\n❌ Could not switch to domain: {args.domain}")
+        return
     
-    # Collect research data
+    # Collect research data (same as before - backward compatible)
     spider = UniversalResearchSpider(config, check_credits=not args.no_credit_check)
     sources = spider.research(args.query, estimate_first=not args.no_credit_check)
     
@@ -271,7 +322,7 @@ def perform_research(args, config: ConfigManager):
     
     print(f"\n✅ Research complete! Found {len(sources)} sources")
     
-    # Initialize RAG if requested
+    # Initialize RAG if requested (backward compatible)
     rag_system = None
     if args.rag:
         print("\n🤖 Initializing RAG system...")
@@ -313,7 +364,7 @@ def perform_research(args, config: ConfigManager):
             'date': datetime.now().strftime('%Y-%m-%d')
         }
         
-    else:  # article (default)
+    else:  # article (default - backward compatible)
         print("\n📝 Generating article...")
         generator = UniversalArticleGenerator(
             config=config,
@@ -455,6 +506,10 @@ Examples:
     # Initialize config
     try:
         config = ConfigManager(domain=args.domain, verbose=args.verbose)
+        
+        # Ensure backward compatibility on startup
+        ensure_backward_compatibility(config)
+        
     except Exception as e:
         print(f"❌ Error initializing configuration: {e}")
         sys.exit(1)
@@ -476,43 +531,49 @@ Examples:
         sys.exit(0 if can_proceed else 1)
     
     if args.add_art_domains:
-        print("\n📚 Adding art and creative domains...")
-        art_domains = add_art_domains()
+        print("\n📚 Manually adding art and creative domains...")
+        added = check_and_add_extended_domains(config)
         
-        domains_file = Path(config.config_dir) / 'domains.json'
-        with open(domains_file, 'r') as f:
-            existing_domains = json.load(f)
+        if added:
+            print(f"✅ Added {len(added)} new domains:")
+            for domain in added:
+                print(f"  • {domain}")
+        else:
+            print("ℹ️  All extended domains already exist in configuration")
         
-        existing_domains.update(art_domains)
-        
-        with open(domains_file, 'w') as f:
-            json.dump(existing_domains, f, indent=2)
-        
-        print("✅ Art domains added successfully!")
-        print("\nNew domains available:")
-        for domain in art_domains.keys():
-            print(f"  • {domain}")
+        print("\n💡 These domains are now available for use!")
         return
     
     if not args.query:
         parser.print_help()
-        print("\n💡 Tip: Use --list-domains to see all available research domains")
-        print("💡 Tip: Use --add-art-domains to add art/creative domains")
+        print("\n💡 Tip: All original domains (botany, medical, mathematics, carpentry) are preserved")
+        print("💡 Tip: New domains are automatically added on first use")
+        print("💡 Tip: Use --list-domains to see all available research domains")
         sys.exit(0)
     
-    # Validate domain
+    # Validate domain (backward compatible - checks both old and new domains)
     available_domains = config.get_available_domains()
+    extended_domains = get_extended_domains()
+    
     if args.domain not in available_domains:
-        # Check if it's an art domain that needs to be added
-        art_domains = add_art_domains()
-        if args.domain in art_domains:
-            print(f"\n⚠️  Domain '{args.domain}' not yet added to configuration")
-            print("Run with --add-art-domains first, then try again")
+        # Check if it's an extended domain that needs to be added
+        if args.domain in extended_domains:
+            print(f"\n✨ Auto-adding domain '{args.domain}' to configuration...")
+            added = check_and_add_extended_domains(config)
+            if added:
+                print(f"✅ Domain '{args.domain}' is now available!")
+                # Reinitialize config to pick up new domain
+                config = ConfigManager(domain=args.domain, verbose=args.verbose)
+            else:
+                print(f"✅ Domain '{args.domain}' already configured")
         else:
             print(f"\n❌ Error: Unknown domain '{args.domain}'")
             print("\nAvailable domains:")
             for d in available_domains:
                 print(f"  • {d}")
+            print("\nExtended domains (auto-added on use):")
+            for d in extended_domains.keys():
+                print(f"  • {d} (creative/art)")
         sys.exit(1)
     
     # Perform research and generate output
