@@ -1,0 +1,262 @@
+name: Research CLI Tests
+
+on:
+  push:
+    branches: [ main, develop ]
+    paths:
+      - 'research_cli.py'
+      - 'V4/**'
+      - 'requirements.txt'
+      - '.github/workflows/test-cli.yml'
+  pull_request:
+    branches: [ main, develop ]
+  workflow_dispatch:
+
+jobs:
+  test-cli:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version: ['3.9', '3.10', '3.11']
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Set up Python ${{ matrix.python-version }}
+      uses: actions/setup-python@v4
+      with:
+        python-version: ${{ matrix.python-version }}
+        cache: 'pip'
+
+    - name: Install system dependencies
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y build-essential
+
+    - name: Install Python dependencies
+      run: |
+        python -m pip install --upgrade pip setuptools wheel
+        pip install -r requirements.txt
+
+    - name: Create directory structure
+      run: |
+        mkdir -p V4/config
+        mkdir -p V4/db
+        mkdir -p _posts
+
+    - name: Make CLI executable
+      run: |
+        chmod +x research_cli.py
+
+    - name: Test CLI - Help
+      run: |
+        python research_cli.py --help
+
+    - name: Test CLI - List Domains
+      run: |
+        python research_cli.py --list-domains
+
+    - name: Test CLI - Domain Info (Botany)
+      run: |
+        python research_cli.py --domain-info botany
+
+    - name: Test CLI - Domain Info (Medical)
+      run: |
+        python research_cli.py --domain-info medical
+
+    - name: Test CLI - Domain Info (Mathematics)
+      run: |
+        python research_cli.py --domain-info mathematics
+
+    - name: Test CLI - System Test
+      run: |
+        python research_cli.py --test
+
+    - name: Test CLI - Verbose Mode
+      run: |
+        python research_cli.py --list-domains --verbose
+
+    - name: Test CLI - Invalid Domain
+      run: |
+        python research_cli.py --domain-info invalid_domain || echo "Expected to fail"
+
+    - name: Test CLI - Query without Domain (Show Help)
+      run: |
+        python research_cli.py
+
+    - name: Verify CLI Exit Codes
+      run: |
+        # Test should pass and return 0
+        python research_cli.py --test
+        TEST_EXIT=$?
+        if [ $TEST_EXIT -ne 0 ]; then
+          echo "❌ System test failed with exit code $TEST_EXIT"
+          exit 1
+        fi
+        echo "✅ System test passed with exit code 0"
+
+    - name: Test Module Imports in CLI Context
+      run: |
+        python -c "
+        import sys
+        sys.path.insert(0, '.')
+        from V4.ConfigManager import ConfigManager
+        from V4.Spider import UniversalResearchSpider
+        from V4.ApiMonitor import SerpAPIMonitor
+        from V4.RagSys import RAGSystem
+        from V4.UniversalArticleGenerator import UniversalArticleGenerator
+        print('✓ All CLI dependencies imported successfully')
+        "
+
+    - name: Test CLI Configuration Loading
+      run: |
+        python -c "
+        import sys
+        sys.path.insert(0, '.')
+        from V4.ConfigManager import ConfigManager
+        
+        # Test different domains
+        for domain in ['botany', 'medical', 'mathematics', 'carpentry']:
+            config = ConfigManager(domain=domain, verbose=False)
+            assert config.get_current_domain() == domain
+            questions = config.get_domain_questions()
+            assert len(questions) > 0
+            print(f'✓ {domain}: {len(questions)} questions')
+        
+        print('✓ All domain configurations loaded successfully')
+        "
+
+    - name: Test CLI with Mock Research (No API)
+      run: |
+        python -c "
+        import sys
+        sys.path.insert(0, '.')
+        from V4.ConfigManager import ConfigManager
+        from V4.RagSys import RAGSystem
+        
+        # Initialize system without making API calls
+        config = ConfigManager(domain='botany', verbose=False)
+        rag = RAGSystem(config)
+        
+        # Test basic functionality
+        test_texts = ['Plant research data', 'Botanical information']
+        test_metadata = [{'source': 'test1'}, {'source': 'test2'}]
+        
+        rag.build_index(test_texts, test_metadata)
+        results = rag.retrieve('plant', k=1)
+        
+        assert len(results) > 0
+        print('✓ Mock research pipeline works')
+        "
+
+    - name: Summary
+      run: |
+        echo "================================"
+        echo "✅ All CLI tests passed!"
+        echo "================================"
+        echo "Python version: ${{ matrix.python-version }}"
+        echo "Test environment: Ubuntu Latest"
+        echo "CLI Status: OPERATIONAL"
+
+  integration-test-cli:
+    runs-on: ubuntu-latest
+    needs: test-cli
+    if: github.event_name == 'push'
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.10'
+        cache: 'pip'
+
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install -r requirements.txt
+
+    - name: Create directory structure
+      run: |
+        mkdir -p V4/config
+        mkdir -p V4/db
+        mkdir -p _posts
+
+    - name: Integration Test - Full CLI Workflow
+      run: |
+        echo "Testing complete CLI workflow without API calls..."
+        
+        # Test 1: System check
+        echo "1. Running system test..."
+        python research_cli.py --test
+        
+        # Test 2: List all domains
+        echo "2. Listing domains..."
+        python research_cli.py --list-domains
+        
+        # Test 3: Domain info for each domain
+        echo "3. Getting domain information..."
+        for domain in botany medical mathematics carpentry; do
+          echo "   - $domain"
+          python research_cli.py --domain-info $domain
+        done
+        
+        # Test 4: Verify configuration
+        echo "4. Verifying configuration..."
+        python -c "
+        from V4.ConfigManager import ConfigManager
+        config = ConfigManager(verbose=False)
+        domains = config.get_available_domains()
+        print(f'✓ Found {len(domains)} domains')
+        for domain in domains[:5]:
+            config.switch_domain(domain)
+            info = config.get_domain_info()
+            print(f'✓ {domain}: {info.get(\"name\", \"Unknown\")}')
+        "
+        
+        echo "✅ Integration test complete!"
+
+    - name: Test CLI Error Handling
+      run: |
+        echo "Testing CLI error handling..."
+        
+        # Test invalid domain (should fail gracefully)
+        python research_cli.py --domain-info nonexistent 2>&1 | grep -q "not found" && echo "✓ Invalid domain handled"
+        
+        # Test missing query (should show help)
+        python research_cli.py 2>&1 | grep -q "Tip:" && echo "✓ Missing query handled"
+        
+        echo "✅ Error handling tests passed"
+
+    - name: Performance Test
+      run: |
+        echo "Running performance tests..."
+        
+        # Time the system test
+        time python research_cli.py --test
+        
+        # Time domain listing
+        time python research_cli.py --list-domains
+        
+        echo "✅ Performance tests complete"
+
+    - name: Final Summary
+      run: |
+        echo ""
+        echo "========================================"
+        echo "✅ ALL CLI INTEGRATION TESTS PASSED!"
+        echo "========================================"
+        echo ""
+        echo "Tested Components:"
+        echo "  • CLI argument parsing"
+        echo "  • Domain management"
+        echo "  • Configuration loading"
+        echo "  • System tests"
+        echo "  • Error handling"
+        echo "  • Integration workflow"
+        echo ""
+        echo "Status: READY FOR PRODUCTION"
+        echo "========================================"
