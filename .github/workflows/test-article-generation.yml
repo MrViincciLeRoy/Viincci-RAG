@@ -1,4 +1,352 @@
-- name: Generate Article
+name: Full Article Generation Test
+
+on:
+  workflow_dispatch:
+    inputs:
+      domain:
+        description: 'Research domain'
+        required: true
+        default: 'botany'
+        type: choice
+        options:
+          - botany
+          - medical
+          - mathematics
+          - carpentry
+          - engineering
+          - chemistry
+      query:
+        description: 'Research topic/query'
+        required: true
+        default: 'Aloe vera'
+      use_rag:
+        description: 'Use RAG for article generation (requires more resources)'
+        required: false
+        default: false
+        type: boolean
+      fetch_images:
+        description: 'Fetch images from Wikimedia Commons'
+        required: false
+        default: true
+        type: boolean
+      max_sources:
+        description: 'Maximum number of sources to collect'
+        required: false
+        default: '15'
+
+jobs:
+  check-api-credits:
+    runs-on: ubuntu-latest
+    outputs:
+      can_proceed: ${{ steps.check.outputs.can_proceed }}
+      credits_remaining: ${{ steps.check.outputs.credits_remaining }}
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.10'
+        cache: 'pip'
+
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip setuptools wheel
+        pip install -r requirements.txt
+
+    - name: Create directory structure
+      run: |
+        mkdir -p V4/config
+        mkdir -p V4/db
+        mkdir -p _posts
+
+    - name: Check API Credits
+      id: check
+      env:
+        SERP_API_KEY: ${{ secrets.SERP_API_KEY }}
+      run: |
+        python -c "
+        import os
+        import sys
+        from V4.ApiMonitor import SerpAPIMonitor
+        from V4.ConfigManager import ConfigManager
+        
+        if not os.getenv('SERP_API_KEY'):
+            print('❌ SERP_API_KEY not set')
+            sys.exit(1)
+        
+        config = ConfigManager(domain='${{ github.event.inputs.domain }}', verbose=True)
+        monitor = SerpAPIMonitor(config)
+        
+        print('\n' + '='*70)
+        print('🔍 Pre-Flight API Check')
+        print('='*70 + '\n')
+        
+        status = monitor.check_credits(verbose=True)
+        
+        # Estimate cost
+        estimate = monitor.estimate_research_cost(
+            plant_name='${{ github.event.inputs.query }}',
+            questions=4
+        )
+        monitor.print_estimate(estimate)
+        
+        # Write outputs
+        with open('$GITHUB_OUTPUT', 'a') as f:
+            f.write(f'can_proceed={str(status[\"can_proceed\"]).lower()}\n')
+            f.write(f'credits_remaining={status[\"searches_remaining\"]}\n')
+        
+        if not estimate['can_afford']:
+            print('\n❌ Insufficient credits for this operation')
+            sys.exit(1)
+        
+        print('\n✅ Credits OK - Proceeding with article generation')
+        "
+
+  collect-research-data:
+    runs-on: ubuntu-latest
+    needs: check-api-credits
+    if: needs.check-api-credits.outputs.can_proceed == 'true'
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.10'
+        cache: 'pip'
+
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip setuptools wheel
+        pip install -r requirements.txt
+
+    - name: Create directory structure
+      run: |
+        mkdir -p V4/config
+        mkdir -p V4/db
+        mkdir -p _posts
+        mkdir -p research_output
+
+    - name: Collect Research Data
+      env:
+        SERP_API_KEY: ${{ secrets.SERP_API_KEY }}
+      run: |
+        python -c "
+        import os
+        import json
+        from datetime import datetime
+        from V4.ConfigManager import ConfigManager
+        from V4.Spider import UniversalResearchSpider
+        
+        print('\n' + '='*70)
+        print('📚 Research Data Collection')
+        print('='*70 + '\n')
+        
+        domain = '${{ github.event.inputs.domain }}'
+        query = '${{ github.event.inputs.query }}'
+        max_sources = int('${{ github.event.inputs.max_sources }}')
+        
+        print(f'Domain: {domain}')
+        print(f'Query: {query}')
+        print(f'Max Sources: {max_sources}\n')
+        
+        # Initialize config with custom max sources
+        config = ConfigManager(domain=domain, verbose=True)
+        config._configs['search_config']['search']['max_sources'] = max_sources
+        
+        # Initialize spider
+        spider = UniversalResearchSpider(config, check_credits=True)
+        
+        # Perform research
+        try:
+            sources = spider.research(query, estimate_first=False)
+            
+            if not sources:
+                print('❌ No sources collected')
+                exit(1)
+            
+            print(f'\n✅ Successfully collected {len(sources)} sources')
+            
+            # Save research data
+            research_data = {
+                'query': query,
+                'domain': domain,
+                'collection_date': datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
+                'total_sources': len(sources),
+                'sources': sources
+            }
+            
+            with open('research_output/research_data.json', 'w', encoding='utf-8') as f:
+                json.dump(research_data, f, indent=2, ensure_ascii=False)
+            
+            # Print summary
+            print('\n' + '='*70)
+            print('📊 Research Summary')
+            print('='*70)
+            print(f'\nTotal Sources: {len(sources)}')
+            
+            # Group by reliability
+            reliability_counts = {}
+            for source in sources:
+                rel = source['metadata']['reliability']
+                reliability_counts[rel] = reliability_counts.get(rel, 0) + 1
+            
+            print('\nReliability Distribution:')
+            for level in ['very_high', 'high', 'medium', 'low']:
+                count = reliability_counts.get(level, 0)
+                if count > 0:
+                    print(f'  • {level}: {count}')
+            
+            print('\nTop 5 Sources:')
+            for i, source in enumerate(sources[:5], 1):
+                print(f'{i}. {source[\"metadata\"][\"source\"]}')
+                print(f'   Reliability: {source[\"metadata\"][\"reliability\"]}')
+                print(f'   Text length: {len(source[\"text\"])} chars')
+            
+            print('\n✅ Research data saved to research_output/research_data.json')
+            
+        except Exception as e:
+            print(f'\n❌ Research failed: {str(e)}')
+            import traceback
+            traceback.print_exc()
+            exit(1)
+        "
+
+    - name: Upload Research Data
+      uses: actions/upload-artifact@v4
+      with:
+        name: research-data
+        path: research_output/research_data.json
+        retention-days: 7
+
+  build-rag-index:
+    runs-on: ubuntu-latest
+    needs: collect-research-data
+    if: github.event.inputs.use_rag == 'true'
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.10'
+        cache: 'pip'
+
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip setuptools wheel
+        pip install -r requirements.txt
+
+    - name: Create directory structure
+      run: |
+        mkdir -p V4/config
+        mkdir -p V4/db
+        mkdir -p research_output
+
+    - name: Download Research Data
+      uses: actions/download-artifact@v4
+      with:
+        name: research-data
+        path: research_output/
+
+    - name: Build RAG Index
+      run: |
+        python -c "
+        import json
+        from V4.ConfigManager import ConfigManager
+        from V4.RagSys import RAGSystem
+        
+        print('\n' + '='*70)
+        print('🤖 Building RAG Index')
+        print('='*70 + '\n')
+        
+        # Load research data
+        with open('research_output/research_data.json', 'r', encoding='utf-8') as f:
+            research_data = json.load(f)
+        
+        sources = research_data['sources']
+        print(f'Building index from {len(sources)} sources...\n')
+        
+        # Initialize RAG system
+        config = ConfigManager(domain='${{ github.event.inputs.domain }}', verbose=False)
+        rag = RAGSystem(config)
+        
+        # Extract texts and metadata
+        texts = [source['text'] for source in sources]
+        metadata = [source['metadata'] for source in sources]
+        
+        # Build index
+        rag.build_index(texts, metadata)
+        
+        # Save index
+        rag.save_index('research_output/rag_index.faiss')
+        
+        # Save texts and metadata for later use
+        with open('research_output/rag_texts.json', 'w', encoding='utf-8') as f:
+            json.dump({'texts': texts, 'metadata': metadata}, f, indent=2)
+        
+        print(f'\n✅ RAG index built and saved')
+        rag.print_statistics()
+        "
+
+    - name: Upload RAG Index
+      uses: actions/upload-artifact@v4
+      with:
+        name: rag-index
+        path: |
+          research_output/rag_index.faiss
+          research_output/rag_texts.json
+        retention-days: 7
+
+  generate-article:
+    runs-on: ubuntu-latest
+    needs: [collect-research-data, build-rag-index]
+    if: always() && needs.collect-research-data.result == 'success'
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.10'
+        cache: 'pip'
+
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip setuptools wheel
+        pip install -r requirements.txt
+
+    - name: Create directory structure
+      run: |
+        mkdir -p V4/config
+        mkdir -p V4/db
+        mkdir -p _posts
+        mkdir -p research_output
+
+    - name: Download Research Data
+      uses: actions/download-artifact@v4
+      with:
+        name: research-data
+        path: research_output/
+
+    - name: Download RAG Index (if available)
+      if: github.event.inputs.use_rag == 'true'
+      uses: actions/download-artifact@v4
+      continue-on-error: true
+      with:
+        name: rag-index
+        path: research_output/
+
+    - name: Generate Article
       run: |
         python -c "
         import json
@@ -48,11 +396,232 @@
                     rag_data['metadata']
                 )
                 
-                # CRITICAL: Load the LLM generator
+                # CRITICAL: Load the LLM generator for RAG
                 print('Loading LLM model for RAG generation...')
+                print('⚠️  This may take several minutes depending on model size')
                 rag_system.load_llm()
                 print('✅ RAG system fully loaded with LLM\n')
+                
+                # Verify RAG is ready
+                if rag_system.is_llm_loaded():
+                    print('✅ Viincci-RAG system ready for intelligent generation\n')
+                else:
+                    print('⚠️  RAG LLM not loaded, falling back to basic generation\n')
+                    rag_system = None
+                    
             except Exception as e:
                 print(f'⚠️  Failed to load RAG: {e}')
                 print('Continuing without RAG...\n')
                 rag_system = None
+        
+        # Initialize article generator
+        generator = UniversalArticleGenerator(
+            config=config,
+            rag_system=rag_system,
+            fetch_images=fetch_images
+        )
+        
+        print('Generating article...\n')
+        
+        try:
+            article = generator.generate_full_article(
+                topic=query,
+                research_data=sources
+            )
+            
+            # Save article
+            safe_filename = query.lower().replace(' ', '-').replace('/', '-')
+            date_str = datetime.now().strftime('%Y-%m-%d')
+            filename = f'_posts/{date_str}-{safe_filename}.html'
+            
+            with open(filename, 'w', encoding='utf-8') as f:
+                f.write(article)
+            
+            print('\n' + '='*70)
+            print('✅ Article Generated Successfully')
+            print('='*70)
+            print(f'\nFilename: {filename}')
+            print(f'Length: {len(article):,} characters')
+            print(f'Word count: ~{len(article.split()):,} words')
+            
+            # Also save to research_output for artifact
+            with open('research_output/article.html', 'w', encoding='utf-8') as f:
+                f.write(article)
+            
+            # Generate article metadata
+            metadata = {
+                'query': query,
+                'domain': domain,
+                'generation_date': datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
+                'filename': filename,
+                'character_count': len(article),
+                'word_count': len(article.split()),
+                'used_rag': use_rag and rag_system is not None,
+                'fetched_images': fetch_images,
+                'source_count': len(sources)
+            }
+            
+            with open('research_output/article_metadata.json', 'w') as f:
+                json.dump(metadata, f, indent=2)
+            
+            print('\n📊 Article Statistics:')
+            for key, value in metadata.items():
+                print(f'  • {key}: {value}')
+            
+        except Exception as e:
+            print(f'\n❌ Article generation failed: {str(e)}')
+            import traceback
+            traceback.print_exc()
+            exit(1)
+        "
+
+    - name: Upload Generated Article
+      uses: actions/upload-artifact@v4
+      with:
+        name: generated-article
+        path: |
+          research_output/article.html
+          research_output/article_metadata.json
+        retention-days: 30
+
+    - name: Upload to _posts
+      uses: actions/upload-artifact@v4
+      with:
+        name: jekyll-post
+        path: _posts/*.html
+        retention-days: 30
+
+  post-flight-check:
+    runs-on: ubuntu-latest
+    needs: [check-api-credits, collect-research-data, generate-article]
+    if: always()
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.10'
+        cache: 'pip'
+
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install -r requirements.txt
+
+    - name: Create directories
+      run: mkdir -p V4/config
+
+    - name: Check Final API Status
+      env:
+        SERP_API_KEY: ${{ secrets.SERP_API_KEY }}
+      run: |
+        python -c "
+        from V4.ApiMonitor import SerpAPIMonitor
+        from V4.ConfigManager import ConfigManager
+        
+        print('\n' + '='*70)
+        print('📊 Post-Flight API Status')
+        print('='*70 + '\n')
+        
+        config = ConfigManager(verbose=False)
+        monitor = SerpAPIMonitor(config)
+        
+        status = monitor.check_credits(verbose=True)
+        
+        print(f'\nInitial Credits: ${{ needs.check-api-credits.outputs.credits_remaining }}')
+        print(f'Final Credits: {status[\"searches_remaining\"]}')
+        
+        if '${{ needs.check-api-credits.outputs.credits_remaining }}' != '':
+            initial = int('${{ needs.check-api-credits.outputs.credits_remaining }}')
+            used = initial - status['searches_remaining']
+            print(f'Credits Used: {used}')
+        "
+
+    - name: Download all artifacts
+      uses: actions/download-artifact@v4
+      with:
+        pattern: '*'
+        path: all-artifacts/
+
+    - name: Generate Final Report
+      run: |
+        echo "# Article Generation Report" > report.md
+        echo "" >> report.md
+        echo "**Generated:** $(date)" >> report.md
+        echo "" >> report.md
+        
+        echo "## Configuration" >> report.md
+        echo "- **Domain:** ${{ github.event.inputs.domain }}" >> report.md
+        echo "- **Query:** ${{ github.event.inputs.query }}" >> report.md
+        echo "- **Use RAG:** ${{ github.event.inputs.use_rag }}" >> report.md
+        echo "- **Fetch Images:** ${{ github.event.inputs.fetch_images }}" >> report.md
+        echo "- **Max Sources:** ${{ github.event.inputs.max_sources }}" >> report.md
+        echo "" >> report.md
+        
+        echo "## Job Results" >> report.md
+        echo "- **API Check:** ${{ needs.check-api-credits.result }}" >> report.md
+        echo "- **Research Collection:** ${{ needs.collect-research-data.result }}" >> report.md
+        echo "- **Article Generation:** ${{ needs.generate-article.result }}" >> report.md
+        echo "" >> report.md
+        
+        echo "## API Credits" >> report.md
+        echo "- **Initial:** ${{ needs.check-api-credits.outputs.credits_remaining }}" >> report.md
+        echo "" >> report.md
+        
+        if [ -f all-artifacts/generated-article/article_metadata.json ]; then
+          echo "## Article Details" >> report.md
+          cat all-artifacts/generated-article/article_metadata.json | python3 -m json.tool | while read line; do
+            echo "  $line" >> report.md
+          done
+          echo "" >> report.md
+        fi
+        
+        echo "## Artifacts Generated" >> report.md
+        echo "" >> report.md
+        ls -la all-artifacts/ 2>/dev/null | tail -n +4 | awk '{print "- " $9}' >> report.md || echo "No artifacts found" >> report.md
+        echo "" >> report.md
+        
+        echo "---" >> report.md
+        echo "*Generated by GitHub Actions*" >> report.md
+        
+        cat report.md
+
+    - name: Upload Final Report
+      uses: actions/upload-artifact@v4
+      with:
+        name: final-report
+        path: report.md
+        retention-days: 90
+
+    - name: Summary
+      run: |
+        echo ""
+        echo "========================================="
+        echo "Article Generation Pipeline Summary"
+        echo "========================================="
+        echo ""
+        echo "Domain: ${{ github.event.inputs.domain }}"
+        echo "Query: ${{ github.event.inputs.query }}"
+        echo ""
+        echo "API Check: ${{ needs.check-api-credits.result }}"
+        echo "Research: ${{ needs.collect-research-data.result }}"
+        echo "Article: ${{ needs.generate-article.result }}"
+        echo ""
+        
+        if [ "${{ needs.generate-article.result }}" = "success" ]; then
+          echo "✅ ARTICLE GENERATED SUCCESSFULLY"
+          echo ""
+          echo "Download your article from the artifacts:"
+          echo "  • generated-article (HTML + metadata)"
+          echo "  • jekyll-post (ready for Jekyll)"
+          echo "========================================="
+          exit 0
+        else
+          echo "❌ ARTICLE GENERATION FAILED"
+          echo "Check the job logs for details"
+          echo "========================================="
+          exit 1
+        fi
