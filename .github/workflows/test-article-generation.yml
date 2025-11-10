@@ -122,7 +122,7 @@ jobs:
 
     - name: Install dependencies
       run: |
-        python -m pip install --upgrade pip setuptools wheel
+        #python -m pip install --upgrade pip setuptools wheel
         pip install -r requirements.txt
 
     - name: Create directory structure
@@ -241,7 +241,7 @@ jobs:
 
     - name: Install dependencies
       run: |
-        python -m pip install --upgrade pip setuptools wheel
+        #python -m pip install --upgrade pip setuptools wheel
         pip install -r requirements.txt
 
     - name: Create directory structure
@@ -322,7 +322,7 @@ jobs:
 
     - name: Install dependencies
       run: |
-        python -m pip install --upgrade pip setuptools wheel
+        #python -m pip install --upgrade pip setuptools wheel
         pip install -r requirements.txt
 
     - name: Create directory structure
@@ -348,7 +348,6 @@ jobs:
 
     - name: Generate Article
       run: |
-        pip install -r requirements.txt
         python -c "
         import json
         import os
@@ -509,7 +508,7 @@ jobs:
 
     - name: Install dependencies
       run: |
-        python -m pip install --upgrade pip
+        #python -m pip install --upgrade pip
         pip install -r requirements.txt
 
     - name: Create directories
