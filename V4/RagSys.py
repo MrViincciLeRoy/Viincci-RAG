@@ -1,7 +1,7 @@
 """
-RagSys.py - Research V4
+RagSys.py - Research V4 (FIXED VERSION)
 RAG System with JSON configuration management
-All settings loaded from ConfigManager
+Added safety checks for generator initialization
 """
 
 import faiss
@@ -47,6 +47,10 @@ class RAGSystem:
         self.metadata = []
         self.d = None
         
+        # LLM components (initialized by load_llm())
+        self.tokenizer = None
+        self.generator = None
+        
         logger.info(f"RAG System initialized with config")
         logger.info(f"  Embedding: {self.embedding_model_name}")
         logger.info(f"  LLM: {self.llm_model_name}")
@@ -78,6 +82,10 @@ class RAGSystem:
         )
 
         logger.info("LLM loaded successfully!")
+
+    def is_llm_loaded(self) -> bool:
+        """Check if LLM generator is loaded and ready."""
+        return self.generator is not None
 
     def build_index(self, texts: List[str], metadata: List[Dict]):
         """
@@ -172,8 +180,14 @@ class RAGSystem:
         Returns:
             Dictionary with answer, sources, and retrieved documents
         """
-        if self.generator is None:
-            raise ValueError("LLM not loaded. Call load_llm() first.")
+        # SAFETY CHECK: Ensure LLM is loaded
+        if not self.is_llm_loaded():
+            error_msg = (
+                "LLM generator not loaded. Call load_llm() before using query(). "
+                "This is required for Viincci-RAG to generate intelligent responses."
+            )
+            logger.error(error_msg)
+            raise RuntimeError(error_msg)
 
         logger.info(f"Processing query: {question[:100]}...")
         
@@ -209,13 +223,13 @@ Context:
 Question: {question}
 
 Instructions:
-- You are writing about native South African plants based on context
 - Answer the question based ONLY on the information provided in the context above
 - If the context doesn't contain enough information to answer the question, say so
 - Cite which source(s) you used in your answer
-- Be concise but thorough [/INST]
-- Do not include these instructions
-- Answer in a Wikipedia blog type
+- Be concise but thorough
+- Do not include these instructions in your response
+- Write in a clear, informative style suitable for educational content
+[/INST]
 
 Answer:"""
         return prompt
@@ -249,12 +263,18 @@ Answer:"""
         logger.info(f"Index saved to {filepath}")
 
     def load_index(self, filepath: str, texts: List[str], metadata: List[Dict]):
-        """Load FAISS index from disk."""
+        """
+        Load FAISS index from disk.
+        
+        NOTE: This only loads the index. You must call load_llm() separately
+        if you want to use query() for RAG generation.
+        """
         self.index = faiss.read_index(filepath)
         self.texts = texts
         self.metadata = metadata
         self.d = self.index.d
         logger.info(f"Index loaded from {filepath}")
+        logger.info("Note: LLM not loaded. Call load_llm() if you need RAG generation.")
 
     def get_statistics(self) -> Dict:
         """Get RAG system statistics."""
@@ -264,7 +284,8 @@ Answer:"""
             "device": self.device,
             "index_size": self.index.ntotal if self.index else 0,
             "embedding_dimension": self.d,
-            "total_texts": len(self.texts)
+            "total_texts": len(self.texts),
+            "llm_loaded": self.is_llm_loaded()
         }
         return stats
 
@@ -276,6 +297,7 @@ Answer:"""
         print("="*60)
         print(f"Embedding Model: {stats['embedding_model']}")
         print(f"LLM Model: {stats['llm_model']}")
+        print(f"LLM Loaded: {'✅ Yes' if stats['llm_loaded'] else '❌ No (call load_llm())'}")
         print(f"Device: {stats['device']}")
         print(f"Index Size: {stats['index_size']} vectors")
         print(f"Embedding Dimension: {stats['embedding_dimension']}")
