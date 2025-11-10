@@ -15,6 +15,10 @@ on:
           - carpentry
           - engineering
           - chemistry
+          - art_history
+          - literature
+          - music
+          - creative_writing
       query:
         description: 'Research topic/query'
         required: true
