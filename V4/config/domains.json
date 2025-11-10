@@ -1,0 +1,132 @@
+{
+  "botany": {
+    "name": "Botanical Research",
+    "description": "Plant and flora research with focus on taxonomy, cultivation, and ecology",
+    "primary_sources": ["university", "research_institute", "botanical_garden", "herbarium"],
+    "questions": [
+      "what are the benefits and uses",
+      "interesting botanical facts",
+      "care and cultivation guide",
+      "physical description and characteristics",
+      "native habitat and distribution"
+    ],
+    "keywords": ["plant", "botanical", "species", "cultivation", "taxonomy", "flora"]
+  },
+  "medical": {
+    "name": "Medical Research",
+    "description": "Medical and healthcare research including diseases, treatments, and anatomy",
+    "primary_sources": ["university", "hospital", "research_institute", "medical_journal", "clinical_trial"],
+    "questions": [
+      "what are the symptoms and signs",
+      "what are the current treatments",
+      "what causes this condition",
+      "what are the risk factors",
+      "diagnosis and testing methods"
+    ],
+    "keywords": ["medical", "disease", "treatment", "diagnosis", "clinical", "patient", "health"]
+  },
+  "carpentry": {
+    "name": "Carpentry & Woodworking",
+    "description": "Woodworking techniques, tools, materials, and construction methods",
+    "primary_sources": ["university", "trade_school", "professional_association", "industry_journal"],
+    "questions": [
+      "what are the required techniques",
+      "what tools and materials are needed",
+      "safety considerations and best practices",
+      "common mistakes and how to avoid them",
+      "step-by-step process"
+    ],
+    "keywords": ["wood", "carpentry", "woodworking", "construction", "joinery", "timber", "tools"]
+  },
+  "mathematics": {
+    "name": "Mathematics Research",
+    "description": "Mathematical concepts, theorems, formulas, and proofs",
+    "primary_sources": ["university", "research_institute", "mathematical_society", "academic_journal"],
+    "questions": [
+      "what is the theorem or formula",
+      "what are the applications and uses",
+      "proof and mathematical derivation",
+      "historical context and development",
+      "related concepts and extensions"
+    ],
+    "keywords": ["mathematics", "theorem", "proof", "formula", "equation", "mathematical", "calculus", "algebra"]
+  },
+  "engineering": {
+    "name": "Engineering Research",
+    "description": "Engineering principles, designs, and technical specifications",
+    "primary_sources": ["university", "research_institute", "engineering_society", "technical_journal"],
+    "questions": [
+      "what are the engineering principles",
+      "design specifications and requirements",
+      "materials and construction methods",
+      "performance characteristics",
+      "standards and regulations"
+    ],
+    "keywords": ["engineering", "design", "technical", "specification", "mechanical", "structural", "system"]
+  },
+  "chemistry": {
+    "name": "Chemistry Research",
+    "description": "Chemical compounds, reactions, and properties",
+    "primary_sources": ["university", "research_institute", "chemical_society", "laboratory"],
+    "questions": [
+      "what are the chemical properties",
+      "synthesis and preparation methods",
+      "reactions and mechanisms",
+      "safety and handling procedures",
+      "applications and uses"
+    ],
+    "keywords": ["chemistry", "compound", "reaction", "synthesis", "molecular", "chemical", "laboratory"]
+  },
+  "physics": {
+    "name": "Physics Research",
+    "description": "Physical phenomena, theories, and experimental methods",
+    "primary_sources": ["university", "research_institute", "physics_society", "observatory"],
+    "questions": [
+      "what are the physical principles",
+      "theoretical framework",
+      "experimental methods and observations",
+      "practical applications",
+      "current research and developments"
+    ],
+    "keywords": ["physics", "physical", "theory", "quantum", "particle", "energy", "force", "motion"]
+  },
+  "computer_science": {
+    "name": "Computer Science Research",
+    "description": "Algorithms, data structures, programming, and computing systems",
+    "primary_sources": ["university", "research_institute", "tech_company", "academic_journal"],
+    "questions": [
+      "what is the algorithm or data structure",
+      "time and space complexity analysis",
+      "implementation details",
+      "practical applications and use cases",
+      "advantages and limitations"
+    ],
+    "keywords": ["algorithm", "programming", "computer", "software", "data", "computation", "code"]
+  },
+  "history": {
+    "name": "Historical Research",
+    "description": "Historical events, figures, periods, and analysis",
+    "primary_sources": ["university", "museum", "archive", "historical_society", "library"],
+    "questions": [
+      "what were the key events",
+      "who were the important figures",
+      "what was the historical context",
+      "what were the causes and effects",
+      "how is it interpreted today"
+    ],
+    "keywords": ["history", "historical", "era", "period", "ancient", "medieval", "modern", "century"]
+  },
+  "law": {
+    "name": "Legal Research",
+    "description": "Legal principles, cases, statutes, and interpretations",
+    "primary_sources": ["university", "law_school", "court", "legal_journal", "bar_association"],
+    "questions": [
+      "what is the legal principle",
+      "key cases and precedents",
+      "statutory requirements",
+      "jurisdictional variations",
+      "practical implications"
+    ],
+    "keywords": ["legal", "law", "statute", "case", "court", "jurisdiction", "precedent", "ruling"]
+  }
+}
