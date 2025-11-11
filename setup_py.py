@@ -64,7 +64,8 @@ setup(
     },
     entry_points={
         "console_scripts": [
-            "viincci-research=research_cli:main",
+            "viincci-research=V4.cli:main",
+            "viincci-main=V4.main:main",
             "viincci-test=test_v4:main",
         ],
     },

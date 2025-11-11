@@ -8,6 +8,11 @@ recursive-include V4/config *.json
 recursive-include V4/config .gitkeep
 recursive-include V4/db .gitkeep
 
+# Include Python modules at root (for backward compatibility)
+include research_cli.py
+include main.py
+include test_v4.py
+
 # Include test files
 recursive-include tests *.py
 
