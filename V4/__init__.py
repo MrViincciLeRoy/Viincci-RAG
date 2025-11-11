@@ -1,5 +1,11 @@
-"""Research V4 package initialization"""
+"""
+V4 Package - Universal Research System
+Version 4.0.0
+"""
 
+__version__ = "4.0.0"
+__author__ = "Your Name"
+__email__ = "your.email@example.com"
 import sys
 import os
 
@@ -13,26 +19,33 @@ if sys.platform == 'win32':
             pass
     os.environ['PYTHONIOENCODING'] = 'utf-8'
 
-# Now do normal imports
-from .ConfigManager import ConfigManager
-from .FloraDatabase import FloraDatabase
-from .Spider import UniversalResearchSpider, research
-from .RagSys import RAGSystem
-from .ArtGenSys import EnhancedPlantArticleGenerator
-from .UniversalArticleGenerator import UniversalArticleGenerator
-from .ApiMonitor import SerpAPIMonitor, check_api_credits, can_start_research
+# Core components
+from V4.ConfigManager import ConfigManager
+from V4.FloraDatabase import FloraDatabase
+from V4.RagSys import RAGSystem
+from V4.UniversalArticleGenerator import UniversalArticleGenerator
+from V4.Spider import UniversalResearchSpider
+from V4.ApiMonitor import SerpAPIMonitor
+
+# Optional components (may fail if dependencies not installed)
+try:
+    from V4.ArtGenSys import EnhancedPlantArticleGenerator
+except ImportError:
+    EnhancedPlantArticleGenerator = None
+
+try:
+    from V4.FloraWikipediaScraper import FloraWikipediaScraper
+except ImportError:
+    FloraWikipediaScraper = None
 
 __all__ = [
+    '__version__',
     'ConfigManager',
     'FloraDatabase',
-    'UniversalResearchSpider',
-    'research',
     'RAGSystem',
-    'EnhancedPlantArticleGenerator',
     'UniversalArticleGenerator',
+    'UniversalResearchSpider',
     'SerpAPIMonitor',
-    'check_api_credits',
-    'can_start_research'
+    'EnhancedPlantArticleGenerator',
+    'FloraWikipediaScraper',
 ]
-
-__version__ = '4.0.0'
