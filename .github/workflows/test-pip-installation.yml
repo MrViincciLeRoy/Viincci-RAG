@@ -158,6 +158,7 @@ jobs:
         echo "✅ Source installation successful"
 
     - name: Verify package installation
+      shell: bash
       run: |
         python -c "import V4; print(f'✅ V4 package version: {V4.__version__}')"
         python -c "from V4 import ConfigManager, FloraDatabase, RAGSystem; print('✅ All imports successful')"
@@ -182,6 +183,7 @@ jobs:
         echo "✅ Editable installation successful"
 
     - name: Verify editable installation
+      shell: bash
       run: |
         python -c "import V4; print(f'✅ V4 package version: {V4.__version__}')"
         python -c "from V4 import ConfigManager; c = ConfigManager(verbose=True); print('✅ ConfigManager working')"
