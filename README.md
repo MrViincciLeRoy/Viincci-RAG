@@ -1,53 +1,142 @@
-# Viincci-RAG: Universal Research System V4
+# Viincci-RAG
 
-[![Python Version](https://img.shields.io/badge/python-3.9%2B-blue.svg)](https://www.python.org/downloads/)
-[![License](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
-[![Tests](https://github.com/MrViincciLeRoy/viincci-rag/workflows/Tests/badge.svg)](https://github.com/MrViincciLeRoy/viincci-rag/actions)
+> Universal multi-domain research system with RAG (Retrieval-Augmented Generation) capabilities
 
-A powerful, domain-agnostic research system with Retrieval-Augmented Generation (RAG) capabilities. Conduct intelligent research across multiple domains including botany, medicine, mathematics, engineering, arts, and humanities.
+[![Python 3.9+](https://img.shields.io/badge/python-3.9+-blue.svg)](https://www.python.org/downloads/)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![Status: Beta](https://img.shields.io/badge/Status-Beta-orange.svg)]()
+
+## 🚀 Quick Start
+
+### Installation
+
+```bash
+# Install from source
+pip install -e .
+
+# With development dependencies
+pip install -e ".[dev]"
+
+# All features
+pip install -e ".[all]"
+```
+
+### Basic Usage
+
+```python
+from viincci_rag import ConfigManager, RAGSystem, UniversalResearchSpider
+
+# Initialize configuration
+config = ConfigManager(domain="botany")
+
+# Create RAG system
+rag = RAGSystem(config)
+rag.load_llm()
+
+# Create research spider
+spider = UniversalResearchSpider(config)
+
+# Or import all classes
+from viincci_rag import *
+```
+
+## 📦 What's Included
+
+| Component | Purpose |
+|-----------|---------|
+| `ConfigManager` | Configuration management with domain support |
+| `RAGSystem` | Retrieval-Augmented Generation pipeline |
+| `UniversalResearchSpider` | Multi-domain research and web scraping |
+| `UniversalArticleGenerator` | Content generation for any domain |
+| `SerpAPIMonitor` | API credit monitoring and management |
+| `FloraDatabase` | Database operations and management |
+
+## 🧪 Testing
+
+```bash
+# Run all tests
+pytest tests/
+
+# Run integration tests
+pytest tests/test_integration.py -v
+
+# With coverage report
+pytest tests/ --cov=viincci_rag --cov-report=html
+```
+
+## 📚 Documentation
+
+All documentation has been moved to the `docs/` folder:
+
+- **[docs/DOCS.md](docs/DOCS.md)** - Documentation index and quick reference
+- **[docs/MIGRATION.md](docs/MIGRATION.md)** - Complete migration guide  
+- **[docs/RESTRUCTURING_SUMMARY.md](docs/RESTRUCTURING_SUMMARY.md)** - Architecture overview
+- **[docs/BACKWARD_COMPATIBILITY_SHIMS.md](docs/BACKWARD_COMPATIBILITY_SHIMS.md)** - Technical details
+- **[docs/package_structure.md](docs/package_structure.md)** - Packaging guide
+
+## 🔄 Backward Compatibility
+
+All old imports continue to work:
+
+```python
+# Old import (still works)
+from V4 import ConfigManager, RAGSystem
+
+# New import (recommended)
+from viincci_rag import ConfigManager, RAGSystem
+
+# Both are identical
+```
+
+## 📋 Project Structure
+
+```
+viincci_rag/
+├── core/              # Core RAG modules with wrappers
+├── database/          # Database adapters
+├── utils/             # Utility functions
+├── config/            # Configuration files
+└── templates/         # Output templates
+
+V4/                    # Original codebase (unchanged)
+docs/                  # Documentation
+tests/                 # Test suite
+```
+
+## 🤝 Contributing
+
+Contributions welcome! Please:
+
+1. Fork the repository
+2. Create a feature branch
+3. Make your changes
+4. Run tests: `pytest tests/`
+5. Submit a Pull Request
+
+## 📄 License
+
+MIT License - See [LICENSE](LICENSE) file for details
+
+## 📞 Support
+
+- 📧 Issues: [GitHub Issues](https://github.com/viincci/viincci-rag/issues)
+- 📖 Documentation: [docs/](docs/)
+- 💬 Discussions: [GitHub Discussions](https://github.com/viincci/viincci-rag/discussions)
+
+---
+
+**Version**: 4.0.0 | **Status**: Beta | **License**: MIT
+```
 
 ## ✨ Features
 
-- 🔬 **Multi-Domain Research**: Support for 12+ research domains
-- 🤖 **RAG-Powered Generation**: Intelligent content generation with retrieval-augmented generation
-- 📊 **Multiple Output Formats**: HTML, Plain Text, and JSON outputs
-- 🎨 **Creative Writing**: Generate poems, essays, and research articles
-- 🔍 **Smart Web Scraping**: Domain-specific search optimization with SerpAPI
-- 💾 **Research Database**: SQLite-based storage for research data
-- 🎯 **API Monitoring**: Built-in credit tracking and cost estimation
-- 📝 **Comprehensive Configuration**: JSON-based, easy-to-customize settings
-
-## 🌐 Supported Domains
-
-### Science & Technology
-- 🌿 **Botany**: Plant science, taxonomy, ecology
-- 🏥 **Medical**: Healthcare, diseases, treatments
-- 📐 **Mathematics**: Theorems, proofs, applications
-- ⚗️ **Chemistry**: Compounds, reactions, properties
-- ⚛️ **Physics**: Physical phenomena, laws, theories
-- 💻 **Computer Science**: Algorithms, programming, systems
-
-### Engineering
-- 🔨 **Carpentry**: Woodworking techniques and joinery
-- ⚙️ **Engineering**: Design principles and technical applications
-
-### Arts & Humanities
-- 🎨 **Art History**: Art movements, artists, techniques
-- 📚 **Literature**: Literary works, authors, critical analysis
-- 🎵 **Music**: Musical genres, composers, theory
-- ✍️ **Creative Writing**: Fiction, poetry, narrative techniques
-
-## 🚀 Installation
-
-### From PyPI (once published)
-
-```bash
-pip install viincci-rag
-```
-
-### From Source
-
-```bash
+- 🔬 **Multi-Domain Research**: Botany, medical, mathematics, carpentry, and more
+- 🤖 **RAG System**: Retrieval-Augmented Generation for intelligent answers
+- � **Multiple Database Backends**: SQLite, PostgreSQL, MongoDB, MySQL
+- 🎯 **API Monitoring**: Built-in SerpAPI credit tracking
+- ⚙️ **Fully Configurable**: Models, databases, content processing
+- ✅ **Tested & Documented**: Comprehensive test suite and documentation
+- 🔄 **Backward Compatible**: All old imports still work
 # Clone the repository
 git clone https://github.com/yourusername/viincci-rag.git
 cd viincci-rag
