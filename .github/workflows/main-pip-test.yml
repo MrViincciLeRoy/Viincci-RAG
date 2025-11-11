@@ -7,7 +7,6 @@ on:
       - 'setup.py'
       - 'pyproject.toml'
       - 'requirements.txt'
-      - 'V4/**'
       - 'MANIFEST.in'
       - '.github/workflows/test-pip-installation.yml'
   pull_request:
