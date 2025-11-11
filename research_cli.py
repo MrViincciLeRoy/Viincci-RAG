@@ -187,138 +187,6 @@ To generate actual essays, use --rag flag and ensure research data is available.
 """
 
 
-def get_extended_domains():
-    """Get extended domains including art and creative fields (backward compatible)"""
-    extended_domains = {
-        "art_history": {
-            "name": "Art History Research",
-            "description": "Art movements, artists, techniques, and historical periods",
-            "primary_sources": ["museum", "university", "art_institute", "gallery"],
-            "questions": [
-                "what are the key characteristics of this art movement",
-                "who were the major artists and their contributions",
-                "what was the historical and cultural context",
-                "what techniques and materials were used",
-                "what is the lasting influence and legacy"
-            ],
-            "keywords": ["art", "artist", "painting", "sculpture", "movement", "style", "technique"]
-        },
-        "literature": {
-            "name": "Literature Research",
-            "description": "Literary works, authors, movements, and analysis",
-            "primary_sources": ["university", "library", "literary_journal", "archive"],
-            "questions": [
-                "what are the themes and motifs",
-                "what is the historical and biographical context",
-                "what are the literary techniques used",
-                "how was it received and interpreted",
-                "what is its cultural significance"
-            ],
-            "keywords": ["literature", "author", "novel", "poetry", "literary", "writing", "text"]
-        },
-        "music": {
-            "name": "Music Research",
-            "description": "Musical genres, composers, theory, and history",
-            "primary_sources": ["university", "conservatory", "music_journal", "archive"],
-            "questions": [
-                "what are the musical characteristics",
-                "who were the key composers or performers",
-                "what is the historical development",
-                "what are the theoretical elements",
-                "what is the cultural impact"
-            ],
-            "keywords": ["music", "composer", "musical", "symphony", "composition", "genre"]
-        },
-        "creative_writing": {
-            "name": "Creative Writing",
-            "description": "Fiction, poetry, narrative techniques, and storytelling",
-            "primary_sources": ["university", "writing_workshop", "literary_magazine"],
-            "questions": [
-                "what are the narrative techniques",
-                "what are the elements of craft",
-                "what are the stylistic approaches",
-                "what are contemporary trends",
-                "what are best practices and examples"
-            ],
-            "keywords": ["writing", "narrative", "story", "fiction", "poetry", "creative"]
-        }
-    }
-    
-    return extended_domains
-
-
-def check_and_add_extended_domains(config: ConfigManager):
-    """Check if extended domains exist, add them if missing (backward compatible)"""
-    domains_file = Path(config.config_dir) / 'domains.json'
-    
-    # Load existing domains
-    with open(domains_file, 'r') as f:
-        existing_domains = json.load(f)
-    
-    extended = get_extended_domains()
-    added_domains = []
-    
-    # Only add domains that don't exist
-    for domain_key, domain_config in extended.items():
-        if domain_key not in existing_domains:
-            existing_domains[domain_key] = domain_config
-            added_domains.append(domain_key)
-    
-    # Save if any domains were added
-    if added_domains:
-        with open(domains_file, 'w') as f:
-            json.dump(existing_domains, f, indent=2)
-        return added_domains
-    
-    return []
-
-
-def reload_config_domains(config: ConfigManager):
-    """Reload domains from file into config instance"""
-    domains_file = Path(config.config_dir) / 'domains.json'
-    
-    try:
-        # Try using the private method if it exists
-        if hasattr(config, '_load_domains') and callable(getattr(config, '_load_domains')):
-            config._load_domains()
-        else:
-            # Manually reload domains from file
-            with open(domains_file, 'r') as f:
-                config.domains = json.load(f)
-        
-        # Also clear any cached domain list if it exists
-        if hasattr(config, '_available_domains_cache'):
-            delattr(config, '_available_domains_cache')
-        
-        return True
-    except Exception as e:
-        print(f"⚠️  Warning: Could not reload domains: {e}")
-        return False
-
-
-def ensure_backward_compatibility(config: ConfigManager):
-    """Ensure all old functionality works with new features"""
-    # Auto-add extended domains if they don't exist
-    added = check_and_add_extended_domains(config)
-    
-    if added:
-        print(f"\n✨ Auto-added {len(added)} new domains: {', '.join(added)}")
-        print("   (All existing domains preserved)")
-        
-        # CRITICAL FIX: Reload the configuration after adding domains
-        reload_config_domains(config)
-    
-    # Verify core domains still exist
-    core_domains = ['botany', 'medical', 'mathematics', 'carpentry']
-    available = config.get_available_domains()
-    
-    for core in core_domains:
-        if core not in available:
-            print(f"⚠️  Warning: Core domain '{core}' missing from configuration")
-    
-    return True
-
-
 def list_domains(config: ConfigManager):
     """List available research domains."""
     print("\n" + "="*70)
@@ -377,10 +245,7 @@ def show_domain_info(domain: str, config: ConfigManager):
 
 
 def perform_research(args, config: ConfigManager):
-    """Perform research and generate output (backward compatible)"""
-    
-    # Ensure backward compatibility - add extended domains if needed
-    ensure_backward_compatibility(config)
+    """Perform research and generate output"""
     
     print(f"\n🔍 Starting research...")
     print(f"   Query: {args.query}")
@@ -390,12 +255,12 @@ def perform_research(args, config: ConfigManager):
     if args.content_type in ['poem', 'essay']:
         print(f"   Content Type: {args.content_type}")
     
-    # Switch domain (supports both old and new domains)
+    # Switch domain
     if not config.switch_domain(args.domain):
         print(f"\n❌ Could not switch to domain: {args.domain}")
         return
     
-    # Collect research data (same as before - backward compatible)
+    # Collect research data
     spider = UniversalResearchSpider(config, check_credits=not args.no_credit_check)
     sources = spider.research(args.query, estimate_first=not args.no_credit_check)
     
@@ -405,7 +270,7 @@ def perform_research(args, config: ConfigManager):
     
     print(f"\n✅ Research complete! Found {len(sources)} sources")
     
-    # Initialize RAG if requested (backward compatible)
+    # Initialize RAG if requested
     rag_system = None
     if args.rag:
         print("\n🤖 Initializing RAG system...")
@@ -447,7 +312,7 @@ def perform_research(args, config: ConfigManager):
             'date': datetime.now().strftime('%Y-%m-%d')
         }
         
-    else:  # article (default - backward compatible)
+    else:  # article (default)
         print("\n📝 Generating article...")
         generator = UniversalArticleGenerator(
             config=config,
@@ -507,11 +372,10 @@ Content Types:
   --content-type poem       Generate poem from research
   --content-type essay      Generate essay from research
 
-Art & Creative Domains:
-  - art_history: Art movements, artists, techniques
-  - literature: Literary works, authors, analysis  
-  - music: Musical genres, composers, theory
-  - creative_writing: Fiction, poetry, narrative
+Available Domains:
+  Science: botany, medical, mathematics, chemistry, physics, computer_science
+  Engineering: carpentry, engineering
+  Arts & Humanities: art_history, literature, music, creative_writing
 
 Examples:
   # Standard HTML article
@@ -523,7 +387,7 @@ Examples:
   # JSON structured output
   python research_cli.py -q "Pythagorean theorem" -d mathematics --format json
   
-  # Research art movement and generate article
+  # Research art movement
   python research_cli.py -q "Impressionism" -d art_history
   
   # Generate poem with RAG
@@ -578,8 +442,6 @@ Examples:
                        help='Show detailed domain information')
     parser.add_argument('--check-credits', action='store_true',
                        help='Check SerpAPI credit status')
-    parser.add_argument('--add-art-domains', action='store_true',
-                       help='Add art/creative domains to configuration')
     
     parser.add_argument('-v', '--verbose', action='store_true',
                        help='Verbose output')
@@ -589,10 +451,6 @@ Examples:
     # Initialize config
     try:
         config = ConfigManager(domain=args.domain, verbose=args.verbose)
-        
-        # Ensure backward compatibility on startup
-        ensure_backward_compatibility(config)
-        
     except Exception as e:
         print(f"❌ Error initializing configuration: {e}")
         sys.exit(1)
@@ -610,55 +468,19 @@ Examples:
         can_proceed = check_credits(config)
         sys.exit(0 if can_proceed else 1)
     
-    if args.add_art_domains:
-        print("\n📚 Manually adding art and creative domains...")
-        added = check_and_add_extended_domains(config)
-        
-        if added:
-            print(f"✅ Added {len(added)} new domains:")
-            for domain in added:
-                print(f"  • {domain}")
-            # Reload config after adding
-            reload_config_domains(config)
-        else:
-            print("ℹ️  All extended domains already exist in configuration")
-        
-        print("\n💡 These domains are now available for use!")
-        return
-    
     if not args.query:
         parser.print_help()
-        print("\n💡 Tip: All original domains (botany, medical, mathematics, carpentry) are preserved")
-        print("💡 Tip: New domains are automatically added on first use")
-        print("💡 Tip: Use --list-domains to see all available research domains")
+        print("\n💡 Tip: Use --list-domains to see all available research domains")
+        print("💡 Tip: Use --check-credits to verify API status")
         sys.exit(0)
     
-    # Validate domain (backward compatible - checks both old and new domains)
-    available_domains = config.get_available_domains()
-    extended_domains = get_extended_domains()
-    
-    if args.domain not in available_domains:
-        # Check if it's an extended domain that needs to be added
-        if args.domain in extended_domains:
-            print(f"\n✨ Auto-adding domain '{args.domain}' to configuration...")
-            added = check_and_add_extended_domains(config)
-            if added:
-                print(f"✅ Domain '{args.domain}' is now available!")
-                # Reload domains after adding
-                reload_config_domains(config)
-                # Now switch to the newly added domain
-                config.switch_domain(args.domain)
-            else:
-                print(f"✅ Domain '{args.domain}' already configured")
-        else:
-            print(f"\n❌ Error: Unknown domain '{args.domain}'")
-            print("\nAvailable domains:")
-            for d in available_domains:
-                print(f"  • {d}")
-            print("\nExtended domains (auto-added on use):")
-            for d in extended_domains.keys():
-                print(f"  • {d} (creative/art)")
-            sys.exit(1)
+    # Validate domain
+    if args.domain not in config.get_available_domains():
+        print(f"\n❌ Error: Unknown domain '{args.domain}'")
+        print("\nAvailable domains:")
+        for d in config.get_available_domains():
+            print(f"  • {d}")
+        sys.exit(1)
     
     # Perform research and generate output
     try:
