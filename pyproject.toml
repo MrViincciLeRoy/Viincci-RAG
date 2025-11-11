@@ -79,11 +79,12 @@ viincci-main = "V4.main:main"
 viincci-test = "V4.test_v4:main"
 
 [tool.setuptools]
-packages = ["V4"]
+packages = ["V4", "viincci_rag"]
 py-modules = []
 
 [tool.setuptools.package-data]
 V4 = ["config/*.json", "config/.gitkeep", "db/.gitkeep"]
+viincci_rag = ["config/*.json", "config/.gitkeep"]
 
 [tool.black]
 line-length = 100
