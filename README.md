@@ -2,7 +2,7 @@
 
 [![Python Version](https://img.shields.io/badge/python-3.9%2B-blue.svg)](https://www.python.org/downloads/)
 [![License](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
-[![Tests](https://github.com/yourusername/viincci-rag/workflows/Tests/badge.svg)](https://github.com/yourusername/viincci-rag/actions)
+[![Tests](https://github.com/MrViincciLeRoy/viincci-rag/workflows/Tests/badge.svg)](https://github.com/MrViincciLeRoy/viincci-rag/actions)
 
 A powerful, domain-agnostic research system with Retrieval-Augmented Generation (RAG) capabilities. Conduct intelligent research across multiple domains including botany, medicine, mathematics, engineering, arts, and humanities.
 
@@ -313,8 +313,8 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 ## 📞 Support
 
 - 📧 Email: your.email@example.com
-- 🐛 Issues: [GitHub Issues](https://github.com/yourusername/viincci-rag/issues)
-- 💬 Discussions: [GitHub Discussions](https://github.com/yourusername/viincci-rag/discussions)
+- 🐛 Issues: [GitHub Issues](https://github.com/MrViincciLeRoy/viincci-rag/issues)
+- 💬 Discussions: [GitHub Discussions](https://github.com/MrViincciLeRoy/viincci-rag/discussions)
 
 ## 🗺️ Roadmap
 
