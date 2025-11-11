@@ -6,6 +6,13 @@
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Status: Beta](https://img.shields.io/badge/Status-Beta-orange.svg)]()
 
+## 🎓 Try It Now (Google Colab)
+
+**No installation required!** Run these notebooks in your browser:
+
+- [![Open in Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/viincci/Viincci-RAG/blob/main/viincci_rag/examples/test_examples.ipynb) **Minimal Examples** — Safe mock mode + real SerpAPI integration
+- [![Open in Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/viincci/Viincci-RAG/blob/main/Test.ipynb) **Complete Testing** — All domains (poetry, medical, botany, art, carpentry)
+
 ## 🚀 Quick Start
 
 ### Installation
