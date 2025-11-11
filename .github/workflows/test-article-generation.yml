@@ -7,7 +7,7 @@ on:
       - 'research_cli.py'
       - 'V4/**'
       - 'requirements.txt'
-      - '.github/workflows/test-enhanced-cli.yml'
+      - '.github/workflows/test-article-generation.yml'
   pull_request:
     branches: [ main, develop ]
   workflow_dispatch:
@@ -69,6 +69,13 @@ jobs:
         mkdir -p V4/db
         mkdir -p _posts
 
+    - name: Copy domains.json to config directory
+      run: |
+        # If domains.json exists in repo root, copy it
+        if [ -f "domains.json" ]; then
+          cp domains.json V4/config/domains.json
+        fi
+
     - name: Make CLI executable
       run: |
         chmod +x research_cli.py
@@ -88,35 +95,30 @@ jobs:
     - name: Test CLI - Domain Info (Medical)
       run: |
         python research_cli.py --domain-info medical
-
-    - name: Test CLI - Add Art Domains
+    
+    - name: Test CLI - Domain Info (Art History)
       run: |
-        python research_cli.py --add-art-domains
+        python research_cli.py --domain-info art_history
 
-    - name: Test CLI - List Domains After Addition
-      run: |
-        python research_cli.py --list-domains
-
-    - name: Verify Extended Domains Added
+    - name: Verify All Domains Available
       run: |
         python -c "
         from V4.ConfigManager import ConfigManager
         config = ConfigManager(verbose=False)
         domains = config.get_available_domains()
         
-        # Check for extended domains
-        extended = ['art_history', 'literature', 'music', 'creative_writing']
-        for domain in extended:
-            assert domain in domains, f'Extended domain {domain} not found'
-            print(f'✓ Found extended domain: {domain}')
+        # Check for all expected domains
+        expected_domains = [
+            'botany', 'medical', 'mathematics', 'carpentry',
+            'engineering', 'chemistry', 'physics', 'computer_science',
+            'art_history', 'literature', 'music', 'creative_writing'
+        ]
         
-        # Check original domains still exist
-        original = ['botany', 'medical', 'mathematics', 'carpentry']
-        for domain in original:
-            assert domain in domains, f'Original domain {domain} missing!'
-            print(f'✓ Original domain preserved: {domain}')
+        for domain in expected_domains:
+            assert domain in domains, f'Domain {domain} not found'
+            print(f'✓ Found domain: {domain}')
         
-        print('\n✅ All domains verified - backward compatibility maintained')
+        print(f'\n✅ All {len(expected_domains)} domains verified')
         "
 
     - name: Test Output Formatters
@@ -168,33 +170,6 @@ jobs:
         print('\n✅ Creative writer working')
         "
 
-    - name: Test Backward Compatibility Functions
-      run: |
-        python -c "
-        import sys
-        sys.path.insert(0, '.')
-        from research_cli import (
-            get_extended_domains, 
-            check_and_add_extended_domains,
-            ensure_backward_compatibility
-        )
-        from V4.ConfigManager import ConfigManager
-        
-        # Test get_extended_domains
-        extended = get_extended_domains()
-        assert 'art_history' in extended
-        assert 'literature' in extended
-        print('✓ get_extended_domains()')
-        
-        # Test ensure_backward_compatibility
-        config = ConfigManager(verbose=False)
-        result = ensure_backward_compatibility(config)
-        assert result == True
-        print('✓ ensure_backward_compatibility()')
-        
-        print('\n✅ Backward compatibility functions working')
-        "
-
     - name: Summary
       run: |
         echo "================================"
@@ -235,6 +210,12 @@ jobs:
         mkdir -p V4/db
         mkdir -p _posts
         mkdir -p test_output
+
+    - name: Copy domains.json
+      run: |
+        if [ -f "domains.json" ]; then
+          cp domains.json V4/config/domains.json
+        fi
 
     - name: Test Output Format - ${{ matrix.format }} (${{ matrix.domain }})
       run: |
@@ -381,6 +362,12 @@ jobs:
         mkdir -p V4/db
         mkdir -p _posts
 
+    - name: Copy domains.json
+      run: |
+        if [ -f "domains.json" ]; then
+          cp domains.json V4/config/domains.json
+        fi
+
     - name: Test Poem Generation (No RAG)
       run: |
         python -c "
@@ -476,15 +463,24 @@ jobs:
         mkdir -p V4/db
         mkdir -p _posts
 
-    - name: Test Original Domains Still Work
+    - name: Copy domains.json
+      run: |
+        if [ -f "domains.json" ]; then
+          cp domains.json V4/config/domains.json
+        fi
+
+    - name: Test All Domains Work
       run: |
         python -c "
         from V4.ConfigManager import ConfigManager
         
-        original_domains = ['botany', 'medical', 'mathematics', 'carpentry', 
-                           'engineering', 'chemistry', 'physics', 'computer_science']
+        all_domains = [
+            'botany', 'medical', 'mathematics', 'carpentry', 
+            'engineering', 'chemistry', 'physics', 'computer_science',
+            'art_history', 'literature', 'music', 'creative_writing'
+        ]
         
-        for domain in original_domains:
+        for domain in all_domains:
             try:
                 config = ConfigManager(domain=domain, verbose=False)
                 assert config.get_current_domain() == domain
@@ -494,6 +490,7 @@ jobs:
                 assert 'name' in info
                 assert 'description' in info
                 assert 'questions' in info
+                assert 'keywords' in info
                 
                 # Test switching
                 config.switch_domain('botany')
@@ -505,68 +502,39 @@ jobs:
                 print(f'✗ Domain {domain}: FAILED - {e}')
                 exit(1)
         
-        print('\n✅ All original domains working - backward compatibility confirmed')
+        print(f'\n✅ All {len(all_domains)} domains working correctly')
         "
 
-    - name: Test Extended Domains
-      run: |
-        python -c "
-        import sys
-        sys.path.insert(0, '.')
-        from research_cli import ensure_backward_compatibility
-        from V4.ConfigManager import ConfigManager
-        
-        config = ConfigManager(verbose=False)
-        ensure_backward_compatibility(config)
-        
-        extended_domains = ['art_history', 'literature', 'music', 'creative_writing']
-        
-        for domain in extended_domains:
-            try:
-                config.switch_domain(domain)
-                assert config.get_current_domain() == domain
-                
-                # Test domain info
-                info = config.get_domain_info()
-                assert 'name' in info
-                assert 'description' in info
-                assert 'questions' in info
-                assert 'keywords' in info
-                
-                print(f'✓ Extended domain {domain}: WORKING')
-                
-            except Exception as e:
-                print(f'✗ Extended domain {domain}: FAILED - {e}')
-                exit(1)
-        
-        print('\n✅ All extended domains working')
-        "
-
-    - name: Test Domain Switching Between Old and New
+    - name: Test Domain Switching
       run: |
         python -c "
         from V4.ConfigManager import ConfigManager
         
         config = ConfigManager(domain='botany', verbose=False)
         assert config.get_current_domain() == 'botany'
-        print('✓ Started with original domain: botany')
+        print('✓ Started with science domain: botany')
         
-        # Switch to extended domain
+        # Switch to arts domain
         config.switch_domain('art_history')
         assert config.get_current_domain() == 'art_history'
-        print('✓ Switched to extended domain: art_history')
+        print('✓ Switched to arts domain: art_history')
         
-        # Switch back to original
+        # Switch back to science
         config.switch_domain('medical')
         assert config.get_current_domain() == 'medical'
-        print('✓ Switched back to original domain: medical')
+        print('✓ Switched back to science domain: medical')
         
-        # Switch to another extended
+        # Switch to humanities
         config.switch_domain('literature')
         assert config.get_current_domain() == 'literature'
-        print('✓ Switched to another extended domain: literature')
+        print('✓ Switched to humanities domain: literature')
         
-        print('\n✅ Domain switching works seamlessly between old and new domains')
+        # Switch to engineering
+        config.switch_domain('engineering')
+        assert config.get_current_domain() == 'engineering'
+        print('✓ Switched to engineering domain: engineering')
+        
+        print('\n✅ Domain switching works seamlessly across all categories')
         "
 
   integration-test:
@@ -595,48 +563,41 @@ jobs:
         mkdir -p V4/db
         mkdir -p _posts
 
+    - name: Copy domains.json
+      run: |
+        if [ -f "domains.json" ]; then
+          cp domains.json V4/config/domains.json
+        fi
+
     - name: Full Integration Test
       run: |
         python -c "
         import sys
         sys.path.insert(0, '.')
-        from research_cli import (
-            OutputFormatter, 
-            CreativeWriter,
-            get_extended_domains,
-            check_and_add_extended_domains,
-            ensure_backward_compatibility
-        )
+        from research_cli import OutputFormatter, CreativeWriter
         from V4.ConfigManager import ConfigManager
         
         print('='*70)
         print('Full Integration Test - Enhanced Research CLI')
         print('='*70)
         
-        # Test 1: Backward compatibility
-        print('\n1. Testing backward compatibility...')
+        # Test 1: All domains available
+        print('\n1. Testing domain availability...')
         config = ConfigManager(verbose=False)
-        ensure_backward_compatibility(config)
-        original_domains = ['botany', 'medical', 'mathematics', 'carpentry']
-        for domain in original_domains:
-            assert domain in config.get_available_domains()
-        print('   ✓ All original domains present')
+        domains = config.get_available_domains()
+        expected = 12  # 8 original + 4 extended
+        assert len(domains) >= expected
+        print(f'   ✓ {len(domains)} domains available')
         
-        # Test 2: Extended domains
-        print('\n2. Testing extended domains...')
-        extended = get_extended_domains()
-        assert len(extended) == 4
-        print(f'   ✓ {len(extended)} extended domains available')
-        
-        # Test 3: Output formatters
-        print('\n3. Testing output formatters...')
+        # Test 2: Output formatters
+        print('\n2. Testing output formatters...')
         for fmt in ['html', 'text', 'json']:
             formatter = OutputFormatter(fmt)
             assert formatter.format_type == fmt
         print('   ✓ All output formatters initialized')
         
-        # Test 4: Creative writer
-        print('\n4. Testing creative writer...')
+        # Test 3: Creative writer
+        print('\n3. Testing creative writer...')
         writer = CreativeWriter(config, None)
         poem = writer.write_poem('test', 'haiku', None)
         essay = writer.write_essay('test', 'expository', None, 500)
@@ -644,13 +605,24 @@ jobs:
         assert len(essay) > 0
         print('   ✓ Creative writer functional')
         
-        # Test 5: Domain switching
-        print('\n5. Testing domain switching...')
+        # Test 4: Domain switching
+        print('\n4. Testing domain switching...')
         config.switch_domain('art_history')
         assert config.get_current_domain() == 'art_history'
         config.switch_domain('botany')
         assert config.get_current_domain() == 'botany'
+        config.switch_domain('music')
+        assert config.get_current_domain() == 'music'
         print('   ✓ Domain switching works')
+        
+        # Test 5: Domain categories
+        print('\n5. Testing domain categories...')
+        science = ['botany', 'medical', 'chemistry', 'physics']
+        arts = ['art_history', 'literature', 'music', 'creative_writing']
+        for domain in science + arts:
+            assert domain in domains
+        print(f'   ✓ Science domains: {len(science)}')
+        print(f'   ✓ Arts domains: {len(arts)}')
         
         print('\n' + '='*70)
         print('✅ ALL INTEGRATION TESTS PASSED')
@@ -692,16 +664,16 @@ jobs:
         echo "- Essays" >> summary.md
         echo "" >> summary.md
         
-        echo "### Domains" >> summary.md
-        echo "**Original:** botany, medical, mathematics, carpentry, engineering, chemistry, physics, computer_science" >> summary.md
-        echo "" >> summary.md
-        echo "**Extended:** art_history, literature, music, creative_writing" >> summary.md
+        echo "### Domains (12 Total)" >> summary.md
+        echo "**Science:** botany, medical, mathematics, chemistry, physics, computer_science" >> summary.md
+        echo "**Engineering:** carpentry, engineering" >> summary.md
+        echo "**Arts & Humanities:** art_history, literature, music, creative_writing" >> summary.md
         echo "" >> summary.md
         
-        echo "## Backward Compatibility" >> summary.md
-        echo "✅ All original domains preserved and functional" >> summary.md
-        echo "✅ Extended domains added without breaking existing functionality" >> summary.md
-        echo "✅ Domain switching works seamlessly between old and new domains" >> summary.md
+        echo "## Architecture" >> summary.md
+        echo "✅ All domains are first-class citizens" >> summary.md
+        echo "✅ No special handling or backward compatibility code" >> summary.md
+        echo "✅ Clean, simple domain management" >> summary.md
         echo "" >> summary.md
         
         echo "---" >> summary.md
@@ -737,8 +709,8 @@ jobs:
           echo "The Enhanced CLI is ready for use with:"
           echo "  • Multiple output formats (HTML, Text, JSON)"
           echo "  • Creative content generation (Poems, Essays)"
-          echo "  • Extended domains (Art, Literature, Music)"
-          echo "  • Full backward compatibility maintained"
+          echo "  • 12 research domains (Science, Engineering, Arts)"
+          echo "  • Clean, simplified architecture"
           echo "========================================="
           exit 0
         else
