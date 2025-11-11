@@ -1,0 +1,64 @@
+# Leonardo da Vinci - Historical Overview
+
+**Research Query:** Leonardo da Vinci biography Renaissance artist scientist inventions
+
+**Sources:** 8 web sources
+
+---
+
+## Overview
+
+Italian polymath of the High Renaissance who was active as a painter, draughtsman, engineer, scientist, theorist, sculptor, and architect.
+
+## Sources and References
+
+### Source 2: Leonardo da Vinci: Facts, Paintings & Inventions
+
+His combination of intellect and imagination allowed him to create, at least on paper, such inventions as the bicycle, the helicopter and an ...
+
+**[Read more](https://www.history.com/articles/leonardo-da-vinci)**
+
+### Source 3: The Inventions of Leonardo Da Vinci
+
+Along with being a master artist, Leonardo da Vinci, a Renaissance Man in the truest sense, was also a prolific inventor, conceiving hundreds of inventions ...
+
+**[Read more](https://www.da-vinci-inventions.com/)**
+
+### Source 4: Leonardo da Vinci | Paintings, Art, Last Supper, Inventions ...
+
+Leonardo da Vinci was an artist and engineer who is best known for his paintings, notably the Mona Lisa (c. 1503–19) and the Last Supper (1495–98).
+
+**[Read more](https://www.britannica.com/biography/Leonardo-da-Vinci)**
+
+### Source 5: Home | Leonardo Da Vinci - The Genius
+
+Leonardo da Vinci is best known as an artist, his work as a scientist and an inventor make him a true Renaissance man.
+
+**[Read more](https://www.mos.org/leonardo/index.html)**
+
+### Source 6: Science and inventions of Leonardo da Vinci
+
+As an engineer, Leonardo conceived ideas vastly ahead of his own time, conceptually inventing the parachute, the helicopter, an armored fighting vehicle, the ...
+
+**[Read more](https://en.wikipedia.org/wiki/Science_and_inventions_of_Leonardo_da_Vinci)**
+
+### Source 7: Grey Matter Leonardo da Vinci: a genius driven to distraction
+
+On 10 January 1478 he received his first recorded commission as an independent painter, a large altarpiece to hang in the Chapel of San Bernardo. For this ...
+
+**[Read more](https://pmc.ncbi.nlm.nih.gov/articles/PMC6536914/)**
+
+### Source 8: Leonardo da Vinci: The Renaissance Genius Unmasked
+
+Leonardo da Vinci stands as the ultimate Renaissance polymath, a man who wanted to know everything. He saw no boundary between art and science.
+
+**[Read more](https://mathsciencehistory.com/leonardo-da-vinci-the-renaissance-genius-unmasked/)**
+
+---
+
+## Metadata
+
+- **Generated:** 2025-11-11T15:07:20.319490
+- **Query:** Leonardo da Vinci biography Renaissance artist scientist inventions
+- **Results:** 8 sources
+- **Source:** SerpAPI + Viincci-RAG

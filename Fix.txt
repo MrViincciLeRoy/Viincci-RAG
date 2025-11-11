@@ -1,0 +1,149 @@
+
+test_examples.ipynb
+test_examples.ipynb_
+Open in Colab
+
+Viincci-RAG — Minimal Examples and Safe SerpAPI Mock
+Run this notebook in Google Colab (link above) or locally with Jupyter.
+
+Features:
+
+Backwards-compatible imports (viincci_rag → V4 fallback)
+SerpAPI mock to avoid using credits while testing
+Multiple domain examples (botany, literature, carpentry)
+Safe fallback generation when library unavailable
+Viincci-RAG — Minimal Examples and Safe SerpAPI Mock
+This notebook provides a small, safe set of example cells to:
+
+Prefer imports from viincci_rag (new layout) and fall back to the legacy V4 package when needed (backwards compatible).
+Demonstrate a SerpAPI mock so you can run examples without consuming real SerpAPI credits (useful for the free 250 credits/month constraint).
+Provide tiny generation examples across several domains using either the real library (if installed) or a harmless fallback that stitches mock research results together.
+Notes: Run cells sequentially. If you have the real library installed and a valid SerpAPI key configured, the notebook will attempt to use it; otherwise it uses safe mocks.
+
+
+[ ]
+print("📦 Installing Viincci-RAG from GitHub...")
+!pip install -q git+https://github.com/viincci/Viincci-RAG.git
+
+# Install additional dependencies if needed
+!pip install -q torch transformers faiss-cpu sentence-transformers
+print("✅ Installation complete!")
+📦 Installing Viincci-RAG from GitHub...
+  Installing build dependencies ... done
+  Getting requirements to build wheel ... done
+  Preparing metadata (pyproject.toml) ... done
+  Preparing metadata (setup.py) ... done
+   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 31.4/31.4 MB 71.7 MB/s eta 0:00:00
+   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 232.6/232.6 kB 17.4 MB/s eta 0:00:00
+  Building wheel for viincci-rag (pyproject.toml) ... done
+  Building wheel for wikipedia-api (setup.py) ... done
+✅ Installation complete!
+
+[ ]
+# Backwards-compatible imports: prefer viincci_rag, fallback to V4 (legacy)
+import importlib
+import os # Added import for os
+
+def try_import():
+    globals_local = {}
+    # Try new package layout first
+    try:
+        # attempt to import the new package layout (viincci_rag)
+        from viincci_rag.core.config import ConfigManager
+        from viincci_rag.core.spider import UniversalResearchSpider
+        from viincci_rag.core.rag_system import RAGSystem
+        from viincci_rag.core.article_generator import UniversalArticleGenerator
+        print('Imported core modules from viincci_rag (new layout)')
+        return {
+            'ConfigManager': ConfigManager,
+            'UniversalResearchSpider': UniversalResearchSpider,
+            'RAGSystem': RAGSystem,
+            'UniversalArticleGenerator': UniversalArticleGenerator
+        }
+    except Exception as e_new:
+        # Try legacy package name used in older releases
+        try:
+            from V4 import ConfigManager, UniversalResearchSpider, RAGSystem, UniversalArticleGenerator
+            print('Imported core modules from V4 (legacy layout)')
+            return {
+                'ConfigManager': ConfigManager,
+                'UniversalResearchSpider': UniversalResearchSpider,
+                'RAGSystem': RAGSystem,
+                'UniversalArticleGenerator': UniversalArticleGenerator
+            }
+        except Exception as e_legacy:
+            print('Could not import core modules from viincci_rag or V4. Continuing with safe mocks.')
+            return {}
+
+viincci_modules = try_import()
+# Expose names into notebook globals if real modules were found
+if viincci_modules:
+    globals().update(viincci_modules)
+
+# A tiny SerpAPI mock — returns a list of dicts with text and metadata
+class MockSerpAPI:
+    def __init__(self, key=None):
+        self.key = key
+    def search(self, query, num_results=3):
+        # Deterministic mock results based on the query string
+        mock_results = []
+        for i in range(num_results):
+            mock_results.append({
+                'text': f"Mock result {i+1} for '{query}'. This is a simulated search result.",
+                'title': f"Mock Title {i+1} - {query.split()[0]}",
+                'link': f"http://mock.example.com/{query.replace(' ', '-')}-{i+1}"
+            })
+        return mock_results
+
+def get_serp_api_client():
+    # Prefer a real SerpAPI client if the key is present and the package is installed
+    key = os.environ.get('SERP_API_KEY')
+    if key:
+        try:
+            # lazy import of serpapi client if available in the environment
+            from serpapi import GoogleSearch
+            print("Using real SerpAPI client.")
+            return GoogleSearch({'api_key': key})
+        except ImportError:
+            print("SerpAPI client not installed, falling back to mock.")
+            return MockSerpAPI(key)
+        except Exception as e:
+            print(f"Error initializing SerpAPI client: {e}, falling back to mock.")
+            return MockSerpAPI(key)
+    else:
+        print("SERP_API_KEY not found, using MockSerpAPI.")
+        return MockSerpAPI()
+Imported core modules from V4 (legacy layout)
+
+[ ]
+# Small helper to convert search results into the shape expected by RAG systems in this repo
+def normalize_search_results(results):
+    normalized = []
+    for r in results:
+        normalized.append({'text': r.get('text', ''), 'metadata': {'title': r.get('title'), **r.get('metadata', {})}})
+
+# Example: run safe searches and produce short generated outputs using either the real generators or a fallback
+queries = {
+    'literature': 'Edgar Allan Poe poetry style themes Gothic',
+    'botany': 'photosynthesis process details plant cells',
+    'carpentry': 'wood joinery techniques types dovetail mortise tenon'
+}
+
+[ ]
+
+
+[ ]
+
+
+[ ]
+
+
+[ ]
+The default viincci_rag doesn't work like we want it I want it as the main so do that and also make sure we have backwards compatible and use the git install we need it for easy use and we want to be sure it runs perfectly before we deploy it to repo do that if everything work like we want and push changes 
+
+[ ]
+
+
+[ ]
+
+Colab paid products - Cancel contracts here
