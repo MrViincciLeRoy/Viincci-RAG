@@ -1,33 +1,25 @@
-# Include documentation
+# Include package data
 include README.md
 include LICENSE
-include CHANGELOG.md
+include requirements.txt
+include pyproject.toml
 
 # Include configuration files
 recursive-include V4/config *.json
 recursive-include V4/config .gitkeep
 recursive-include V4/db .gitkeep
 
-# Include Python modules at root (for backward compatibility)
-include research_cli.py
-include main.py
-include test_v4.py
-
-# Include test files
-recursive-include tests *.py
-
-# Include workflow files (optional)
-recursive-include .github/workflows *.yml
-
 # Exclude unnecessary files
 global-exclude __pycache__
 global-exclude *.py[co]
 global-exclude .DS_Store
 global-exclude *.swp
-global-exclude *.swo
+global-exclude .git*
 
-# Exclude development files
-exclude .gitignore
-exclude .flake8
-exclude pytest.ini
-exclude tox.ini
+# Exclude test and build artifacts
+prune tests
+prune docs
+prune _posts
+prune build
+prune dist
+prune *.egg-info

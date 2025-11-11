@@ -76,10 +76,11 @@ Repository = "https://github.com/yourusername/viincci-rag"
 [project.scripts]
 viincci-research = "V4.cli:main"
 viincci-main = "V4.main:main"
-viincci-test = "test_v4:main"
+viincci-test = "V4.test_v4:main"
 
 [tool.setuptools]
 packages = ["V4"]
+py-modules = []
 
 [tool.setuptools.package-data]
 V4 = ["config/*.json", "config/.gitkeep", "db/.gitkeep"]
