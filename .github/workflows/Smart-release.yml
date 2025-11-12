@@ -1,0 +1,370 @@
+name: Smart Release Manager
+
+on:
+  # Trigger when pyproject.toml changes on main
+  push:
+    branches:
+      - main
+    paths:
+      - 'pyproject.toml'
+  
+  # Manual trigger with release notes
+  workflow_dispatch:
+    inputs:
+      release_type:
+        description: 'Release type'
+        required: true
+        type: choice
+        options:
+          - patch
+          - minor
+          - major
+          - current
+        default: 'current'
+      
+      release_notes:
+        description: 'Release notes (what changed)'
+        required: true
+        type: string
+        default: |
+          ### Added
+          - New features here
+          
+          ### Fixed
+          - Bug fixes here
+          
+          ### Changed
+          - Changes here
+      
+      create_release:
+        description: 'Create GitHub release?'
+        required: true
+        type: boolean
+        default: true
+      
+      publish_pypi:
+        description: 'Publish to PyPI?'
+        required: true
+        type: boolean
+        default: false
+
+permissions:
+  contents: write
+  id-token: write
+
+jobs:
+  detect-version-change:
+    name: Detect Version Change
+    runs-on: ubuntu-latest
+    outputs:
+      version_changed: ${{ steps.check.outputs.changed }}
+      old_version: ${{ steps.check.outputs.old_version }}
+      new_version: ${{ steps.check.outputs.new_version }}
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      with:
+        fetch-depth: 2
+    
+    - name: Check if version changed
+      id: check
+      run: |
+        # Get current version
+        NEW_VERSION=$(grep -m1 'version = ' pyproject.toml | cut -d'"' -f2)
+        echo "new_version=$NEW_VERSION" >> $GITHUB_OUTPUT
+        
+        # Get previous version
+        git checkout HEAD~1 pyproject.toml 2>/dev/null || echo "First commit"
+        OLD_VERSION=$(grep -m1 'version = ' pyproject.toml | cut -d'"' -f2 2>/dev/null || echo "0.0.0")
+        echo "old_version=$OLD_VERSION" >> $GITHUB_OUTPUT
+        
+        # Check if changed
+        if [ "$NEW_VERSION" != "$OLD_VERSION" ]; then
+          echo "changed=true" >> $GITHUB_OUTPUT
+          echo "✅ Version changed: $OLD_VERSION → $NEW_VERSION"
+        else
+          echo "changed=false" >> $GITHUB_OUTPUT
+          echo "ℹ️  Version unchanged: $NEW_VERSION"
+        fi
+
+  calculate-version:
+    name: Calculate New Version
+    runs-on: ubuntu-latest
+    if: github.event_name == 'workflow_dispatch'
+    outputs:
+      new_version: ${{ steps.calc.outputs.version }}
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+    
+    - name: Calculate version
+      id: calc
+      run: |
+        CURRENT=$(grep -m1 'version = ' pyproject.toml | cut -d'"' -f2)
+        RELEASE_TYPE="${{ github.event.inputs.release_type }}"
+        
+        if [ "$RELEASE_TYPE" == "current" ]; then
+          NEW_VERSION="$CURRENT"
+        else
+          IFS='.' read -ra PARTS <<< "$CURRENT"
+          MAJOR=${PARTS[0]}
+          MINOR=${PARTS[1]}
+          PATCH=${PARTS[2]}
+          
+          case $RELEASE_TYPE in
+            patch)
+              NEW_VERSION="$MAJOR.$MINOR.$((PATCH + 1))"
+              ;;
+            minor)
+              NEW_VERSION="$MAJOR.$((MINOR + 1)).0"
+              ;;
+            major)
+              NEW_VERSION="$((MAJOR + 1)).0.0"
+              ;;
+          esac
+        fi
+        
+        echo "version=$NEW_VERSION" >> $GITHUB_OUTPUT
+        echo "📦 Version will be: $NEW_VERSION"
+
+  update-version:
+    name: Update Version Files
+    needs: calculate-version
+    runs-on: ubuntu-latest
+    if: github.event_name == 'workflow_dispatch' && github.event.inputs.release_type != 'current'
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+    
+    - name: Update version in files
+      run: |
+        NEW_VERSION="${{ needs.calculate-version.outputs.new_version }}"
+        
+        # Update pyproject.toml
+        sed -i "s/version = \".*\"/version = \"$NEW_VERSION\"/" pyproject.toml
+        
+        # Update __init__.py
+        if [ -f "__init__.py" ]; then
+          sed -i "s/__version__ = \".*\"/__version__ = \"$NEW_VERSION\"/" __init__.py
+        fi
+        if [ -f "viincci_rag/__init__.py" ]; then
+          sed -i "s/__version__ = \".*\"/__version__ = \"$NEW_VERSION\"/" viincci_rag/__init__.py
+        fi
+        
+        echo "✅ Updated version to $NEW_VERSION"
+    
+    - name: Update CHANGELOG
+      run: |
+        NEW_VERSION="${{ needs.calculate-version.outputs.new_version }}"
+        RELEASE_NOTES="${{ github.event.inputs.release_notes }}"
+        DATE=$(date +%Y-%m-%d)
+        
+        # Create changelog entry
+        ENTRY="## [$NEW_VERSION] - $DATE
+
+$RELEASE_NOTES
+
+"
+        
+        # Insert into CHANGELOG.md
+        if [ -f "CHANGELOG.md" ]; then
+          # Insert after first header
+          sed -i "/^# /a\\
+$ENTRY" CHANGELOG.md
+        else
+          # Create new CHANGELOG
+          echo "# Changelog
+
+$ENTRY
+
+[$NEW_VERSION]: https://github.com/${{ github.repository }}/releases/tag/v$NEW_VERSION" > CHANGELOG.md
+        fi
+        
+        echo "✅ Updated CHANGELOG.md"
+    
+    - name: Commit changes
+      run: |
+        git config user.name "github-actions[bot]"
+        git config user.email "github-actions[bot]@users.noreply.github.com"
+        git add pyproject.toml __init__.py viincci_rag/__init__.py CHANGELOG.md
+        git commit -m "chore: bump version to ${{ needs.calculate-version.outputs.new_version }}"
+        git push
+
+  create-release:
+    name: Create GitHub Release
+    needs: [detect-version-change, calculate-version, update-version]
+    runs-on: ubuntu-latest
+    if: |
+      always() && 
+      !cancelled() &&
+      (
+        (github.event_name == 'push' && needs.detect-version-change.outputs.version_changed == 'true') ||
+        (github.event_name == 'workflow_dispatch' && github.event.inputs.create_release == 'true')
+      )
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      with:
+        ref: main
+        fetch-depth: 0
+    
+    - name: Determine version
+      id: version
+      run: |
+        if [ "${{ github.event_name }}" == "workflow_dispatch" ]; then
+          VERSION="${{ needs.calculate-version.outputs.new_version }}"
+        else
+          VERSION="${{ needs.detect-version-change.outputs.new_version }}"
+        fi
+        echo "version=$VERSION" >> $GITHUB_OUTPUT
+        echo "📦 Creating release for version: $VERSION"
+    
+    - name: Extract changelog
+      id: changelog
+      run: |
+        VERSION="${{ steps.version.outputs.version }}"
+        
+        if [ -f "CHANGELOG.md" ]; then
+          # Extract this version's changelog
+          NOTES=$(awk "/## \[$VERSION\]/,/## \[/" CHANGELOG.md | head -n -1 | tail -n +2)
+          
+          if [ -z "$NOTES" ]; then
+            NOTES="See [CHANGELOG.md](https://github.com/${{ github.repository }}/blob/main/CHANGELOG.md) for details."
+          fi
+        else
+          NOTES="${{ github.event.inputs.release_notes }}"
+        fi
+        
+        # Save to file for multiline
+        echo "$NOTES" > release_notes.txt
+    
+    - name: Create git tag
+      run: |
+        VERSION="${{ steps.version.outputs.version }}"
+        git config user.name "github-actions[bot]"
+        git config user.email "github-actions[bot]@users.noreply.github.com"
+        
+        if git rev-parse "v$VERSION" >/dev/null 2>&1; then
+          echo "⚠️  Tag v$VERSION already exists, skipping tag creation"
+        else
+          git tag -a "v$VERSION" -m "Release version $VERSION"
+          git push origin "v$VERSION"
+          echo "✅ Created and pushed tag v$VERSION"
+        fi
+    
+    - name: Create GitHub Release
+      uses: softprops/action-gh-release@v1
+      with:
+        tag_name: v${{ steps.version.outputs.version }}
+        name: v${{ steps.version.outputs.version }}
+        body_path: release_notes.txt
+        draft: false
+        prerelease: false
+        generate_release_notes: true
+
+  build:
+    name: Build Package
+    needs: [create-release]
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      with:
+        ref: main
+    
+    - name: Set up Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: '3.9'
+    
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install build twine
+    
+    - name: Build package
+      run: |
+        python -m build
+        echo "📦 Package built successfully"
+    
+    - name: Check distribution
+      run: |
+        twine check dist/*
+        ls -lh dist/
+    
+    - name: Upload artifacts
+      uses: actions/upload-artifact@v4
+      with:
+        name: python-package-distributions
+        path: dist/
+
+  publish-pypi:
+    name: Publish to PyPI
+    needs: [build, create-release]
+    runs-on: ubuntu-latest
+    if: |
+      github.event_name == 'workflow_dispatch' && 
+      github.event.inputs.publish_pypi == 'true'
+    environment:
+      name: pypi
+      url: https://pypi.org/project/viincci-rag/
+    permissions:
+      id-token: write
+    
+    steps:
+    - name: Download artifacts
+      uses: actions/download-artifact@v4
+      with:
+        name: python-package-distributions
+        path: dist/
+    
+    - name: Publish to PyPI
+      uses: pypa/gh-action-pypi-publish@release/v1
+      with:
+        password: ${{ secrets.PYPI_API_TOKEN }}
+        verbose: true
+
+  summary:
+    name: Release Summary
+    needs: [detect-version-change, calculate-version, create-release, build, publish-pypi]
+    runs-on: ubuntu-latest
+    if: always()
+    
+    steps:
+    - name: Generate summary
+      run: |
+        echo "## 🚀 Release Summary" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        
+        if [ "${{ github.event_name }}" == "workflow_dispatch" ]; then
+          VERSION="${{ needs.calculate-version.outputs.new_version }}"
+          echo "**Triggered by:** Manual dispatch" >> $GITHUB_STEP_SUMMARY
+          echo "**Release type:** ${{ github.event.inputs.release_type }}" >> $GITHUB_STEP_SUMMARY
+        else
+          VERSION="${{ needs.detect-version-change.outputs.new_version }}"
+          echo "**Triggered by:** Version change in pyproject.toml" >> $GITHUB_STEP_SUMMARY
+        fi
+        
+        echo "**Version:** $VERSION" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        
+        echo "### Status" >> $GITHUB_STEP_SUMMARY
+        echo "| Job | Status |" >> $GITHUB_STEP_SUMMARY
+        echo "|-----|--------|" >> $GITHUB_STEP_SUMMARY
+        echo "| Create Release | ${{ needs.create-release.result }} |" >> $GITHUB_STEP_SUMMARY
+        echo "| Build Package | ${{ needs.build.result }} |" >> $GITHUB_STEP_SUMMARY
+        echo "| Publish PyPI | ${{ needs.publish-pypi.result }} |" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        
+        echo "### Links" >> $GITHUB_STEP_SUMMARY
+        echo "- 📦 [Release](https://github.com/${{ github.repository }}/releases/tag/v$VERSION)" >> $GITHUB_STEP_SUMMARY
+        echo "- 📊 [All Releases](https://github.com/${{ github.repository }}/releases)" >> $GITHUB_STEP_SUMMARY
+        
+        if [ "${{ needs.publish-pypi.result }}" == "success" ]; then
+          echo "- 🐍 [PyPI Package](https://pypi.org/project/viincci-rag/$VERSION/)" >> $GITHUB_STEP_SUMMARY
+        fi
