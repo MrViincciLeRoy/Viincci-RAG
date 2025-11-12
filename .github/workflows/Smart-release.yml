@@ -41,16 +41,9 @@ on:
         required: true
         type: boolean
         default: true
-      
-      publish_pypi:
-        description: 'Publish to PyPI?'
-        required: true
-        type: boolean
-        default: false
 
 permissions:
   contents: write
-  id-token: write
 
 jobs:
   detect-version-change:
@@ -82,7 +75,7 @@ jobs:
         # Check if changed
         if [ "$NEW_VERSION" != "$OLD_VERSION" ]; then
           echo "changed=true" >> $GITHUB_OUTPUT
-          echo "Version changed: $OLD_VERSION → $NEW_VERSION"
+          echo "Version changed: $OLD_VERSION -> $NEW_VERSION"
         else
           echo "changed=false" >> $GITHUB_OUTPUT
           echo "Version unchanged: $NEW_VERSION"
@@ -146,7 +139,7 @@ jobs:
         # Update pyproject.toml
         sed -i "s/version = \".*\"/version = \"$NEW_VERSION\"/" pyproject.toml
         
-        # Update __init__.py
+        # Update __init__.py files if they exist
         if [ -f "__init__.py" ]; then
           sed -i "s/__version__ = \".*\"/__version__ = \"$NEW_VERSION\"/" __init__.py
         fi
@@ -159,28 +152,33 @@ jobs:
     - name: Update CHANGELOG
       run: |
         NEW_VERSION="${{ needs.calculate-version.outputs.new_version }}"
-        RELEASE_NOTES="${{ github.event.inputs.release_notes }}"
         DATE=$(date +%Y-%m-%d)
         
+        # Save release notes to temp file
+        cat > release_notes_temp.txt << 'EOF'
+        ${{ github.event.inputs.release_notes }}
+        EOF
+        
         # Create changelog entry
-        cat << 'CHANGELOG_EOF' > new_entry.txt
-        ## [$NEW_VERSION] - $DATE
-        
-        $RELEASE_NOTES
-        
-        CHANGELOG_EOF
-        
-        # Replace variables
-        sed -i "s/\$NEW_VERSION/$NEW_VERSION/g" new_entry.txt
-        sed -i "s/\$DATE/$DATE/g" new_entry.txt
-        sed -i "s/\$RELEASE_NOTES/$RELEASE_NOTES/g" new_entry.txt
+        {
+          echo "## [$NEW_VERSION] - $DATE"
+          echo ""
+          cat release_notes_temp.txt
+          echo ""
+          echo ""
+        } > new_entry.txt
         
         # Insert into CHANGELOG.md
         if [ -f "CHANGELOG.md" ]; then
-          # Create temp file with new entry
-          cat new_entry.txt > temp_changelog.md
-          tail -n +2 CHANGELOG.md >> temp_changelog.md
+          # Backup original
+          cp CHANGELOG.md CHANGELOG.md.bak
+          # Insert new entry after the first line (header)
+          head -n 1 CHANGELOG.md > temp_changelog.md
+          echo "" >> temp_changelog.md
+          cat new_entry.txt >> temp_changelog.md
+          tail -n +2 CHANGELOG.md.bak >> temp_changelog.md
           mv temp_changelog.md CHANGELOG.md
+          rm CHANGELOG.md.bak
         else
           # Create new CHANGELOG
           echo "# Changelog" > CHANGELOG.md
@@ -188,22 +186,33 @@ jobs:
           cat new_entry.txt >> CHANGELOG.md
         fi
         
-        rm new_entry.txt
+        rm -f new_entry.txt release_notes_temp.txt
         echo "Updated CHANGELOG.md"
     
     - name: Commit changes
       run: |
         git config user.name "github-actions[bot]"
         git config user.email "github-actions[bot]@users.noreply.github.com"
+        
+        # Add files
         git add pyproject.toml CHANGELOG.md
+        
+        # Add __init__.py files if they exist
         if [ -f "__init__.py" ]; then
           git add __init__.py
         fi
         if [ -f "viincci_rag/__init__.py" ]; then
           git add viincci_rag/__init__.py
         fi
-        git commit -m "chore: bump version to ${{ needs.calculate-version.outputs.new_version }}" || echo "No changes to commit"
-        git push
+        
+        # Commit and push
+        if git diff --staged --quiet; then
+          echo "No changes to commit"
+        else
+          git commit -m "chore: bump version to ${{ needs.calculate-version.outputs.new_version }}"
+          git push
+          echo "Changes committed and pushed"
+        fi
 
   create-release:
     name: Create GitHub Release
@@ -241,18 +250,21 @@ jobs:
         VERSION="${{ steps.version.outputs.version }}"
         
         if [ -f "CHANGELOG.md" ]; then
-          # Extract this version's changelog
-          NOTES=$(awk "/## \[$VERSION\]/,/## \[/" CHANGELOG.md | head -n -1 | tail -n +2)
+          # Extract this version's changelog section
+          awk "/## \[$VERSION\]/,/## \[/" CHANGELOG.md | head -n -1 | tail -n +2 > release_notes.txt
           
-          if [ -z "$NOTES" ]; then
-            NOTES="See [CHANGELOG.md](https://github.com/${{ github.repository }}/blob/main/CHANGELOG.md) for details."
+          # Check if we got any content
+          if [ ! -s release_notes.txt ]; then
+            echo "See [CHANGELOG.md](https://github.com/${{ github.repository }}/blob/main/CHANGELOG.md) for details." > release_notes.txt
           fi
         else
-          NOTES="${{ github.event.inputs.release_notes }}"
+          # Use manual release notes if no CHANGELOG exists
+          cat > release_notes.txt << 'EOF'
+        ${{ github.event.inputs.release_notes }}
+        EOF
         fi
         
-        # Save to file for multiline
-        echo "$NOTES" > release_notes.txt
+        echo "Release notes prepared"
     
     - name: Create git tag
       run: |
@@ -260,6 +272,7 @@ jobs:
         git config user.name "github-actions[bot]"
         git config user.email "github-actions[bot]@users.noreply.github.com"
         
+        # Check if tag already exists
         if git rev-parse "v$VERSION" >/dev/null 2>&1; then
           echo "Tag v$VERSION already exists, skipping tag creation"
         else
@@ -278,72 +291,9 @@ jobs:
         prerelease: false
         generate_release_notes: true
 
-  build:
-    name: Build Package
-    needs: [create-release]
-    runs-on: ubuntu-latest
-    
-    steps:
-    - name: Checkout code
-      uses: actions/checkout@v4
-      with:
-        ref: main
-    
-    - name: Set up Python
-      uses: actions/setup-python@v5
-      with:
-        python-version: '3.9'
-    
-    - name: Install dependencies
-      run: |
-        python -m pip install --upgrade pip
-        pip install build twine
-    
-    - name: Build package
-      run: |
-        python -m build
-        echo "Package built successfully"
-    
-    - name: Check distribution
-      run: |
-        twine check dist/*
-        ls -lh dist/
-    
-    - name: Upload artifacts
-      uses: actions/upload-artifact@v4
-      with:
-        name: python-package-distributions
-        path: dist/
-
-  publish-pypi:
-    name: Publish to PyPI
-    needs: [build, create-release]
-    runs-on: ubuntu-latest
-    if: |
-      github.event_name == 'workflow_dispatch' && 
-      github.event.inputs.publish_pypi == 'true'
-    environment:
-      name: pypi
-      url: https://pypi.org/project/viincci-rag/
-    permissions:
-      id-token: write
-    
-    steps:
-    - name: Download artifacts
-      uses: actions/download-artifact@v4
-      with:
-        name: python-package-distributions
-        path: dist/
-    
-    - name: Publish to PyPI
-      uses: pypa/gh-action-pypi-publish@release/v1
-      with:
-        password: ${{ secrets.PYPI_API_TOKEN }}
-        verbose: true
-
   summary:
     name: Release Summary
-    needs: [detect-version-change, calculate-version, create-release, build, publish-pypi]
+    needs: [detect-version-change, calculate-version, create-release]
     runs-on: ubuntu-latest
     if: always()
     
@@ -365,18 +315,15 @@ jobs:
         echo "**Version:** $VERSION" >> $GITHUB_STEP_SUMMARY
         echo "" >> $GITHUB_STEP_SUMMARY
         
-        echo "### Status" >> $GITHUB_STEP_SUMMARY
+        echo "### Job Status" >> $GITHUB_STEP_SUMMARY
         echo "| Job | Status |" >> $GITHUB_STEP_SUMMARY
         echo "|-----|--------|" >> $GITHUB_STEP_SUMMARY
+        echo "| Detect Version | ${{ needs.detect-version-change.result }} |" >> $GITHUB_STEP_SUMMARY
+        echo "| Calculate Version | ${{ needs.calculate-version.result }} |" >> $GITHUB_STEP_SUMMARY
         echo "| Create Release | ${{ needs.create-release.result }} |" >> $GITHUB_STEP_SUMMARY
-        echo "| Build Package | ${{ needs.build.result }} |" >> $GITHUB_STEP_SUMMARY
-        echo "| Publish PyPI | ${{ needs.publish-pypi.result }} |" >> $GITHUB_STEP_SUMMARY
         echo "" >> $GITHUB_STEP_SUMMARY
         
         echo "### Links" >> $GITHUB_STEP_SUMMARY
-        echo "- [Release](https://github.com/${{ github.repository }}/releases/tag/v$VERSION)" >> $GITHUB_STEP_SUMMARY
+        echo "- [Release v$VERSION](https://github.com/${{ github.repository }}/releases/tag/v$VERSION)" >> $GITHUB_STEP_SUMMARY
         echo "- [All Releases](https://github.com/${{ github.repository }}/releases)" >> $GITHUB_STEP_SUMMARY
-        
-        if [ "${{ needs.publish-pypi.result }}" == "success" ]; then
-          echo "- [PyPI Package](https://pypi.org/project/viincci-rag/$VERSION/)" >> $GITHUB_STEP_SUMMARY
-        fi
+        echo "- [Changelog](https://github.com/${{ github.repository }}/blob/main/CHANGELOG.md)" >> $GITHUB_STEP_SUMMARY
