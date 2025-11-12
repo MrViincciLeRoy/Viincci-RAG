@@ -16,8 +16,9 @@ import sys
 import warnings
 
 # Import and re-export core modules (prefer viincci_rag, fallback to V4)
-__version__ = "4.0.0"
-__author__ = "Viincci Team"
+__version__ = "1.0.0"
+__author__ = "MrViincciLeRoy"
+__author_email__ = "Viincci@proton.me"
 __license__ = "MIT"
 
 try:

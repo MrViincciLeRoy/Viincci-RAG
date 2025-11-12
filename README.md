@@ -408,9 +408,10 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 ## 📞 Support
 
-- 📧 Email: your.email@example.com
-- 🐛 Issues: [GitHub Issues](https://github.com/MrViincciLeRoy/viincci-rag/issues)
-- 💬 Discussions: [GitHub Discussions](https://github.com/MrViincciLeRoy/viincci-rag/discussions)
+- 📧 Email: Viincci@proton.me
+- GitHub: [MrViincciLeRoy](https://github.com/MrViincciLeRoy)
+- 🐛 Issues: [GitHub Issues](https://github.com/viincci/Viincci-RAG/issues)
+- 💬 Discussions: [GitHub Discussions](https://github.com/viincci/Viincci-RAG/discussions)
 
 ## 🗺️ Roadmap
 

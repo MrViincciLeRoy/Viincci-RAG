@@ -19,13 +19,13 @@ if requirements_file.exists():
 
 setup(
     name="viincci-rag",
-    version="4.0.0",
-    author="Your Name",
-    author_email="your.email@example.com",
+    version="1.0.0",
+    author="MrViincciLeRoy",
+    author_email="Viincci@proton.me",
     description="Universal multi-domain research system with RAG capabilities",
     long_description=long_description,
     long_description_content_type="text/markdown",
-    url="https://github.com/yourusername/viincci-rag",
+    url="https://github.com/viincci/Viincci-RAG",
     packages=find_packages(exclude=["tests", "tests.*", "docs", "_posts"]),
     include_package_data=True,
     package_data={
@@ -39,6 +39,7 @@ setup(
             "config/.gitkeep",
         ],
     },
+
     classifiers=[
         "Development Status :: 4 - Beta",
         "Intended Audience :: Science/Research",
@@ -74,8 +75,8 @@ setup(
         ],
     },
     project_urls={
-        "Bug Reports": "https://github.com/yourusername/viincci-rag/issues",
-        "Source": "https://github.com/yourusername/viincci-rag",
-        "Documentation": "https://github.com/yourusername/viincci-rag/wiki",
+        "Bug Reports": "https://github.com/viincci/Viincci-RAG/issues",
+        "Source": "https://github.com/viincci/Viincci-RAG",
+        "Documentation": "https://github.com/viincci/Viincci-RAG",
     },
 )
