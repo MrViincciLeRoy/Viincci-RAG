@@ -8,6 +8,8 @@ include pyproject.toml
 recursive-include V4/config *.json
 recursive-include V4/config .gitkeep
 recursive-include V4/db .gitkeep
+recursive-include viincci_rag/config *.json
+recursive-include viincci_rag/config .gitkeep
 
 # Exclude unnecessary files
 global-exclude __pycache__

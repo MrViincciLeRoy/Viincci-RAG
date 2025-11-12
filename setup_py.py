@@ -34,6 +34,10 @@ setup(
             "config/.gitkeep",
             "db/.gitkeep",
         ],
+        "viincci_rag": [
+            "config/*.json",
+            "config/.gitkeep",
+        ],
     },
     classifiers=[
         "Development Status :: 4 - Beta",

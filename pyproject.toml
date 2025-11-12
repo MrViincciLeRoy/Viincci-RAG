@@ -79,11 +79,12 @@ viincci-main = "V4.main:main"
 viincci-test = "V4.test_v4:main"
 
 [tool.setuptools]
-packages = ["V4"]
+packages = ["V4", "viincci_rag"]
 py-modules = []
 
 [tool.setuptools.package-data]
 V4 = ["config/*.json", "config/.gitkeep", "db/.gitkeep"]
+viincci_rag = ["config/*.json", "config/.gitkeep"]
 
 [tool.black]
 line-length = 100
@@ -108,10 +109,10 @@ testpaths = ["tests"]
 python_files = ["test_*.py", "*_test.py"]
 python_classes = ["Test*"]
 python_functions = ["test_*"]
-addopts = "-v --cov=V4 --cov-report=term-missing --cov-report=html"
+addopts = "-v --cov=V4 --cov=viincci_rag --cov-report=term-missing --cov-report=html"
 
 [tool.coverage.run]
-source = ["V4"]
+source = ["V4", "viincci_rag"]
 omit = [
     "*/tests/*",
     "*/test_*.py",
