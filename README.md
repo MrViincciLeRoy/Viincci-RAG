@@ -19,13 +19,14 @@
 
 ```bash
 # Install from source
-pip install -e .
+pip install viincci-rag 
 
 # With development dependencies
-pip install -e ".[dev]"
+pip install viincci-rag[dev]
 
 # All features
-pip install -e ".[all]"
+pip install viincci-rag[all]
+
 ```
 
 ### Basic Usage
