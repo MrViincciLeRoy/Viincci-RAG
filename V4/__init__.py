@@ -4,8 +4,8 @@ Version 4.0.1
 """
 
 __version__ = "4.0.1"
-__author__ = "Your Name"
-__email__ = "your.email@example.com"
+__author__ = "MrViincciLeRoy"
+__email__ = "Viincci@proton.me"
 import sys
 import os
 

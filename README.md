@@ -20,12 +20,11 @@ rag = RAGSystem(config)
 See full documentation at: https://github.com/viincci/Viincci-RAG
 
 ## License
-MIT License - see LICENSE files and proceed with a and update fields
+MIT License - see LICENSE file for details.
 
 ## Maintainer
-- GitHub / PyPI: MrViincciLeRoy
-- Email: Viincci@proton.me
-```
+- **GitHub / PyPI Username**: MrViincciLeRoy
+- **Email**: Viincci@proton.me
 
 ## ✨ Features
 
@@ -36,9 +35,12 @@ MIT License - see LICENSE files and proceed with a and update fields
 - ⚙️ **Fully Configurable**: Models, databases, content processing
 - ✅ **Tested & Documented**: Comprehensive test suite and documentation
 - 🔄 **Backward Compatible**: All old imports still work
+
+### Development Installation
+```bash
 # Clone the repository
-git clone https://github.com/yourusername/viincci-rag.git
-cd viincci-rag
+git clone https://github.com/viincci/Viincci-RAG.git
+cd Viincci-RAG
 
 # Install in development mode
 pip install -e .
@@ -267,15 +269,15 @@ if estimate['can_afford']:
 
 ## 📚 Documentation
 
-For detailed documentation, visit the [Wiki](https://github.com/yourusername/viincci-rag/wiki).
+For detailed documentation, visit: https://github.com/viincci/Viincci-RAG
 
 ### Key Topics
 
-- [Installation Guide](https://github.com/yourusername/viincci-rag/wiki/Installation)
-- [Configuration Reference](https://github.com/yourusername/viincci-rag/wiki/Configuration)
-- [API Documentation](https://github.com/yourusername/viincci-rag/wiki/API)
-- [Domain Creation Guide](https://github.com/yourusername/viincci-rag/wiki/Creating-Domains)
-- [RAG System Guide](https://github.com/yourusername/viincci-rag/wiki/RAG-System)
+- [Installation Guide](https://github.com/viincci/Viincci-RAG)
+- [Configuration Reference](https://github.com/viincci/Viincci-RAG)
+- [API Documentation](https://github.com/viincci/Viincci-RAG)
+- [Domain Creation Guide](https://github.com/viincci/Viincci-RAG)
+- [RAG System Guide](https://github.com/viincci/Viincci-RAG)
 
 ## 🤝 Contributing
 
@@ -300,9 +302,10 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 ## 📞 Support
 
-- 📧 Email: your.email@example.com
-- 🐛 Issues: [GitHub Issues](https://github.com/MrViincciLeRoy/viincci-rag/issues)
-- 💬 Discussions: [GitHub Discussions](https://github.com/MrViincciLeRoy/viincci-rag/discussions)
+- 📧 Email: Viincci@proton.me
+- GitHub: [MrViincciLeRoy](https://github.com/MrViincciLeRoy)
+- 🐛 Issues: [GitHub Issues](https://github.com/viincci/Viincci-RAG/issues)
+- 💬 Discussions: [GitHub Discussions](https://github.com/viincci/Viincci-RAG/discussions)
 
 ## 🗺️ Roadmap
 

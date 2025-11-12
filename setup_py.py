@@ -75,8 +75,8 @@ setup(
         ],
     },
     project_urls={
-        "Bug Reports": "https://github.com/yourusername/viincci-rag/issues",
-        "Source": "https://github.com/yourusername/viincci-rag",
-        "Documentation": "https://github.com/yourusername/viincci-rag/wiki",
+        "Bug Reports": "https://github.com/viincci/Viincci-RAG/issues",
+        "Source": "https://github.com/viincci/Viincci-RAG",
+        "Documentation": "https://github.com/viincci/Viincci-RAG",
     },
 )

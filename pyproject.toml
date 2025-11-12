@@ -10,10 +10,10 @@ readme = "README.md"
 requires-python = ">=3.9"
 license = {text = "MIT"}
 authors = [
-    {name = "Viincci Team", email = "contact@viincci.dev"}
+    {name = "MrViincciLeRoy", email = "Viincci@proton.me"}
 ]
 maintainers = [
-    {name = "Viincci Team", email = "contact@viincci.dev"}
+    {name = "MrViincciLeRoy", email = "Viincci@proton.me"}
 ]
 keywords = [
     "research", 
@@ -68,10 +68,10 @@ all = [
 ]
 
 [project.urls]
-Homepage = "https://github.com/yourusername/viincci-rag"
-Documentation = "https://github.com/yourusername/viincci-rag/wiki"
-Repository = "https://github.com/yourusername/viincci-rag"
-"Bug Tracker" = "https://github.com/yourusername/viincci-rag/issues"
+Homepage = "https://github.com/viincci/Viincci-RAG"
+Documentation = "https://github.com/viincci/Viincci-RAG"
+Repository = "https://github.com/viincci/Viincci-RAG"
+"Bug Tracker" = "https://github.com/viincci/Viincci-RAG/issues"
 
 [project.scripts]
 viincci-research = "V4.cli:main"

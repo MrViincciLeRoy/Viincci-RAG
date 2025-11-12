@@ -12,7 +12,8 @@ Usage:
 """
 
 __version__ = "1.0.0"
-__author__ = "Viincci Team"
+__author__ = "MrViincciLeRoy"
+__author_email__ = "Viincci@proton.me"
 __license__ = "MIT"
 
 
