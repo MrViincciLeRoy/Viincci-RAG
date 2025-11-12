@@ -3,7 +3,7 @@ V4 Package - Universal Research System
 Version 4.0.1
 """
 
-__version__ = "4.0.1"
+__version__ = "1.0.0"
 __author__ = "MrViincciLeRoy"
 __email__ = "Viincci@proton.me"
 import sys

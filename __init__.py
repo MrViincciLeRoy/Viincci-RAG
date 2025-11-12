@@ -8,7 +8,7 @@ This file allows importing directly from the repository root:
 It prefers viincci_rag imports but falls back to V4 for backward compatibility.
 """
 
-__version__ = "3.0.0"
+__version__ = "1.0.0"
 __author__ = "MrViincciLeRoy"
 __author_email__ = "Viincci@proton.me"
 __license__ = "MIT"

@@ -11,7 +11,7 @@ Usage:
     spider = UniversalResearchSpider(config)
 """
 
-__version__ = "3.0.0"
+__version__ = "1.0.0"
 __author__ = "MrViincciLeRoy"
 __author_email__ = "Viincci@proton.me"
 __license__ = "MIT"
