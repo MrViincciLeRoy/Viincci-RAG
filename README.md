@@ -10,8 +10,8 @@
 
 **No installation required!** Run these notebooks in your browser:
 
-- [![Open in Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/viincci/Viincci-RAG/blob/main/viincci_rag/examples/test_examples.ipynb) **Minimal Examples** — Safe mock mode + real SerpAPI integration
-- [![Open in Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/viincci/Viincci-RAG/blob/main/Test.ipynb) **Complete Testing** — All domains (poetry, medical, botany, art, carpentry)
+- [![Open in Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/MrViincciLeRoy/Viincci-RAG/blob/main/viincci_rag/examples/test_examples.ipynb) **Minimal Examples** — Safe mock mode + real SerpAPI integration
+- [![Open in Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/MrViincciLeRoy/Viincci-RAG/blob/main/Test.ipynb) **Complete Testing** — All domains (poetry, medical, botany, art, carpentry)
 
 ## 🚀 Quick Start
 
