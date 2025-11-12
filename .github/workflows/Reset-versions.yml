@@ -1,0 +1,218 @@
+name: Reset Version to 1.0.0
+
+on:
+  workflow_dispatch:
+    inputs:
+      target_version:
+        description: 'Target version to set'
+        required: true
+        type: string
+        default: '1.0.0'
+      
+      delete_tags:
+        description: 'Tags to delete (comma-separated, e.g., v1.0.0,v2.0.0,v3.0.0)'
+        required: false
+        type: string
+        default: 'v1.0.0,v2.0.0,v3.0.0'
+      
+      delete_releases:
+        description: 'Also delete GitHub releases?'
+        required: true
+        type: boolean
+        default: true
+
+permissions:
+  contents: write
+
+jobs:
+  reset-version:
+    name: Reset Version and Clean Tags
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      with:
+        fetch-depth: 0
+    
+    - name: Delete specified tags
+      run: |
+        TAGS="${{ github.event.inputs.delete_tags }}"
+        echo "Tags to delete: $TAGS"
+        
+        IFS=',' read -ra TAG_ARRAY <<< "$TAGS"
+        for tag in "${TAG_ARRAY[@]}"; do
+          tag=$(echo "$tag" | xargs)  # Trim whitespace
+          
+          if [ -n "$tag" ]; then
+            echo "Processing tag: $tag"
+            
+            # Delete local tag
+            if git tag -l "$tag" | grep -q "$tag"; then
+              git tag -d "$tag"
+              echo "  ✅ Deleted local tag $tag"
+            else
+              echo "  ℹ️  Local tag $tag does not exist"
+            fi
+            
+            # Delete remote tag
+            if git ls-remote --tags origin | grep -q "refs/tags/$tag"; then
+              git push origin --delete "$tag" || echo "  ⚠️  Could not delete remote tag $tag"
+              echo "  ✅ Deleted remote tag $tag"
+            else
+              echo "  ℹ️  Remote tag $tag does not exist"
+            fi
+          fi
+        done
+    
+    - name: Delete GitHub releases
+      if: github.event.inputs.delete_releases == 'true'
+      env:
+        GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      run: |
+        TAGS="${{ github.event.inputs.delete_tags }}"
+        IFS=',' read -ra TAG_ARRAY <<< "$TAGS"
+        
+        for tag in "${TAG_ARRAY[@]}"; do
+          tag=$(echo "$tag" | xargs)
+          
+          if [ -n "$tag" ]; then
+            echo "Checking for release: $tag"
+            
+            # Check if release exists and delete it
+            if gh release view "$tag" >/dev/null 2>&1; then
+              gh release delete "$tag" --yes
+              echo "  ✅ Deleted release $tag"
+            else
+              echo "  ℹ️  Release $tag does not exist"
+            fi
+          fi
+        done
+    
+    - name: Update version in files
+      run: |
+        TARGET_VERSION="${{ github.event.inputs.target_version }}"
+        echo "Setting version to: $TARGET_VERSION"
+        
+        # Update pyproject.toml
+        if [ -f "pyproject.toml" ]; then
+          sed -i "s/version = \".*\"/version = \"$TARGET_VERSION\"/" pyproject.toml
+          echo "  ✅ Updated pyproject.toml"
+        fi
+        
+        # Update root __init__.py
+        if [ -f "__init__.py" ]; then
+          sed -i "s/__version__ = \".*\"/__version__ = \"$TARGET_VERSION\"/" __init__.py
+          echo "  ✅ Updated __init__.py"
+        fi
+        
+        # Update viincci_rag/__init__.py
+        if [ -f "viincci_rag/__init__.py" ]; then
+          sed -i "s/__version__ = \".*\"/__version__ = \"$TARGET_VERSION\"/" viincci_rag/__init__.py
+          echo "  ✅ Updated viincci_rag/__init__.py"
+        fi
+        
+        # Update V4/__init__.py if exists
+        if [ -f "V4/__init__.py" ]; then
+          sed -i "s/__version__ = \".*\"/__version__ = \"$TARGET_VERSION\"/" V4/__init__.py
+          echo "  ✅ Updated V4/__init__.py"
+        fi
+    
+    - name: Create/Update CHANGELOG
+      run: |
+        TARGET_VERSION="${{ github.event.inputs.target_version }}"
+        DATE=$(date +%Y-%m-%d)
+        
+        # Create clean CHANGELOG
+        cat > CHANGELOG.md << 'EOF'
+        # Changelog
+
+All notable changes to this project will be documented in this file.
+
+The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
+and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
+
+## [Unreleased]
+
+## [TARGET_VERSION] - DATE
+
+### Added
+- Initial release
+- Ready for version TARGET_VERSION
+
+---
+
+[Unreleased]: https://github.com/${{ github.repository }}/compare/vTARGET_VERSION...HEAD
+[TARGET_VERSION]: https://github.com/${{ github.repository }}/releases/tag/vTARGET_VERSION
+EOF
+        
+        # Replace placeholders
+        sed -i "s/TARGET_VERSION/$TARGET_VERSION/g" CHANGELOG.md
+        sed -i "s/DATE/$DATE/g" CHANGELOG.md
+        
+        echo "  ✅ Created/Updated CHANGELOG.md"
+    
+    - name: Commit changes
+      run: |
+        TARGET_VERSION="${{ github.event.inputs.target_version }}"
+        
+        git config user.name "github-actions[bot]"
+        git config user.email "github-actions[bot]@users.noreply.github.com"
+        
+        # Add all modified files
+        git add pyproject.toml CHANGELOG.md
+        git add __init__.py 2>/dev/null || true
+        git add viincci_rag/__init__.py 2>/dev/null || true
+        git add V4/__init__.py 2>/dev/null || true
+        
+        # Commit if there are changes
+        if git diff --staged --quiet; then
+          echo "  ℹ️  No changes to commit"
+        else
+          git commit -m "chore: reset version to $TARGET_VERSION"
+          git push
+          echo "  ✅ Changes committed and pushed"
+        fi
+    
+    - name: Generate summary
+      run: |
+        TARGET_VERSION="${{ github.event.inputs.target_version }}"
+        TAGS="${{ github.event.inputs.delete_tags }}"
+        
+        echo "## 🎉 Version Reset Complete" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        echo "**Target Version**: $TARGET_VERSION" >> $GITHUB_STEP_SUMMARY
+        echo "**Deleted Tags**: $TAGS" >> $GITHUB_STEP_SUMMARY
+        echo "**Deleted Releases**: ${{ github.event.inputs.delete_releases }}" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        echo "### ✅ What Was Done" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        echo "1. ✅ Deleted specified Git tags (local and remote)" >> $GITHUB_STEP_SUMMARY
+        
+        if [ "${{ github.event.inputs.delete_releases }}" == "true" ]; then
+          echo "2. ✅ Deleted corresponding GitHub releases" >> $GITHUB_STEP_SUMMARY
+        else
+          echo "2. ⏭️  Skipped deleting GitHub releases" >> $GITHUB_STEP_SUMMARY
+        fi
+        
+        echo "3. ✅ Updated version to $TARGET_VERSION in all files" >> $GITHUB_STEP_SUMMARY
+        echo "4. ✅ Created/Updated CHANGELOG.md" >> $GITHUB_STEP_SUMMARY
+        echo "5. ✅ Committed and pushed changes" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        echo "### 📋 Next Steps" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        echo "1. Go to **Actions** → **Smart Release Manager**" >> $GITHUB_STEP_SUMMARY
+        echo "2. Click **Run workflow**" >> $GITHUB_STEP_SUMMARY
+        echo "3. Select:" >> $GITHUB_STEP_SUMMARY
+        echo "   - Release type: **current** (important!)" >> $GITHUB_STEP_SUMMARY
+        echo "   - Paste your comprehensive release notes" >> $GITHUB_STEP_SUMMARY
+        echo "   - Create GitHub release?: ✅ Yes" >> $GITHUB_STEP_SUMMARY
+        echo "4. Click **Run workflow**" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        echo "This will create v$TARGET_VERSION without any version calculations." >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        echo "### 🔗 Useful Links" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        echo "- [Run Smart Release Manager](https://github.com/${{ github.repository }}/actions/workflows/Smart-release.yml)" >> $GITHUB_STEP_SUMMARY
+        echo "- [View Releases](https://github.com/${{ github.repository }}/releases)" >> $GITHUB_STEP_SUMMARY
+        echo "- [View Tags](https://github.com/${{ github.repository }}/tags)" >> $GITHUB_STEP_SUMMARY
