@@ -1,30 +1,139 @@
 # Viincci-RAG
 
-Universal multi-domain research system with RAG capabilities.
+> Universal multi-domain research system with RAG (Retrieval-Augmented Generation) capabilities
 
-## Installation
+[![Python 3.9+](https://img.shields.io/badge/python-3.9+-blue.svg)](https://www.python.org/downloads/)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![Status: Beta](https://img.shields.io/badge/Status-Beta-orange.svg)]()
+
+## 🎓 Try It Now (Google Colab)
+
+**No installation required!** Run these notebooks in your browser:
+
+- [![Open in Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/MrViincciLeRoy/Viincci-RAG/blob/main/viincci_rag/examples/test_examples.ipynb) **Minimal Examples** — Safe mock mode + real SerpAPI integration
+- [![Open in Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/MrViincciLeRoy/Viincci-RAG/blob/main/Test.ipynb) **Complete Testing** — All domains (poetry, medical, botany, art, carpentry)
+
+## 🚀 Quick Start
+
+### Installation
+
 ```bash
-pip install viincci-rag
+# Install from source
+pip install -e .
+
+# With development dependencies
+pip install -e ".[dev]"
+
+# All features
+pip install -e ".[all]"
 ```
 
-## Quick Start
+### Basic Usage
+
 ```python
+from viincci_rag import ConfigManager, RAGSystem, UniversalResearchSpider
+
+# Initialize configuration
+config = ConfigManager(domain="botany")
+
+# Create RAG system
+rag = RAGSystem(config)
+rag.load_llm()
+
+# Create research spider
+spider = UniversalResearchSpider(config)
+
+# Or import all classes
+from viincci_rag import *
+```
+
+## 📦 What's Included
+
+| Component | Purpose |
+|-----------|---------|
+| `ConfigManager` | Configuration management with domain support |
+| `RAGSystem` | Retrieval-Augmented Generation pipeline |
+| `UniversalResearchSpider` | Multi-domain research and web scraping |
+| `UniversalArticleGenerator` | Content generation for any domain |
+| `SerpAPIMonitor` | API credit monitoring and management |
+| `FloraDatabase` | Database operations and management |
+
+## 🧪 Testing
+
+```bash
+# Run all tests
+pytest tests/
+
+# Run integration tests
+pytest tests/test_integration.py -v
+
+# With coverage report
+pytest tests/ --cov=viincci_rag --cov-report=html
+```
+
+## 📚 Documentation
+
+All documentation has been moved to the `docs/` folder:
+
+- **[docs/DOCS.md](docs/DOCS.md)** - Documentation index and quick reference
+- **[docs/MIGRATION.md](docs/MIGRATION.md)** - Complete migration guide  
+- **[docs/RESTRUCTURING_SUMMARY.md](docs/RESTRUCTURING_SUMMARY.md)** - Architecture overview
+- **[docs/BACKWARD_COMPATIBILITY_SHIMS.md](docs/BACKWARD_COMPATIBILITY_SHIMS.md)** - Technical details
+- **[docs/package_structure.md](docs/package_structure.md)** - Packaging guide
+
+## 🔄 Backward Compatibility
+
+All old imports continue to work:
+
+```python
+# Old import (still works)
+from V4 import ConfigManager, RAGSystem
+
+# New import (recommended)
 from viincci_rag import ConfigManager, RAGSystem
 
-# Initialize
-config = ConfigManager()
-rag = RAGSystem(config)
+# Both are identical
 ```
 
-## Documentation
-See full documentation at: https://github.com/viincci/Viincci-RAG
+## 📋 Project Structure
 
-## License
-MIT License - see LICENSE file for details.
+```
+viincci_rag/
+├── core/              # Core RAG modules with wrappers
+├── database/          # Database adapters
+├── utils/             # Utility functions
+├── config/            # Configuration files
+└── templates/         # Output templates
 
-## Maintainer
-- **GitHub / PyPI Username**: MrViincciLeRoy
-- **Email**: Viincci@proton.me
+V4/                    # Original codebase (unchanged)
+docs/                  # Documentation
+tests/                 # Test suite
+```
+
+## 🤝 Contributing
+
+Contributions welcome! Please:
+
+1. Fork the repository
+2. Create a feature branch
+3. Make your changes
+4. Run tests: `pytest tests/`
+5. Submit a Pull Request
+
+## 📄 License
+
+MIT License - See [LICENSE](LICENSE) file for details
+
+## 📞 Support
+
+- 📧 Issues: [GitHub Issues](https://github.com/viincci/viincci-rag/issues)
+- 📖 Documentation: [docs/](docs/)
+- 💬 Discussions: [GitHub Discussions](https://github.com/viincci/viincci-rag/discussions)
+
+---
+
+**Version**: 4.0.0 | **Status**: Beta | **License**: MIT
+```
 
 ## ✨ Features
 
@@ -35,12 +144,9 @@ MIT License - see LICENSE file for details.
 - ⚙️ **Fully Configurable**: Models, databases, content processing
 - ✅ **Tested & Documented**: Comprehensive test suite and documentation
 - 🔄 **Backward Compatible**: All old imports still work
-
-### Development Installation
-```bash
 # Clone the repository
-git clone https://github.com/viincci/Viincci-RAG.git
-cd Viincci-RAG
+git clone https://github.com/yourusername/viincci-rag.git
+cd viincci-rag
 
 # Install in development mode
 pip install -e .
@@ -269,15 +375,15 @@ if estimate['can_afford']:
 
 ## 📚 Documentation
 
-For detailed documentation, visit: https://github.com/viincci/Viincci-RAG
+For detailed documentation, visit the [Wiki](https://github.com/yourusername/viincci-rag/wiki).
 
 ### Key Topics
 
-- [Installation Guide](https://github.com/viincci/Viincci-RAG)
-- [Configuration Reference](https://github.com/viincci/Viincci-RAG)
-- [API Documentation](https://github.com/viincci/Viincci-RAG)
-- [Domain Creation Guide](https://github.com/viincci/Viincci-RAG)
-- [RAG System Guide](https://github.com/viincci/Viincci-RAG)
+- [Installation Guide](https://github.com/yourusername/viincci-rag/wiki/Installation)
+- [Configuration Reference](https://github.com/yourusername/viincci-rag/wiki/Configuration)
+- [API Documentation](https://github.com/yourusername/viincci-rag/wiki/API)
+- [Domain Creation Guide](https://github.com/yourusername/viincci-rag/wiki/Creating-Domains)
+- [RAG System Guide](https://github.com/yourusername/viincci-rag/wiki/RAG-System)
 
 ## 🤝 Contributing
 
