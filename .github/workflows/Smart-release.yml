@@ -120,7 +120,7 @@ jobs:
         fi
         
         echo "version=$NEW_VERSION" >> $GITHUB_OUTPUT
-        echo "Version will be: $NEW_VERSION"
+        echo "Calculated version: $NEW_VERSION (from $CURRENT using $RELEASE_TYPE)"
 
   update-version:
     name: Update Version Files
@@ -154,10 +154,10 @@ jobs:
         NEW_VERSION="${{ needs.calculate-version.outputs.new_version }}"
         DATE=$(date +%Y-%m-%d)
         
-        # Save release notes to temp file
-        cat > release_notes_temp.txt << 'EOF'
+        # Save release notes to temp file (preserve formatting)
+        cat > release_notes_temp.txt << 'NOTES_EOF'
         ${{ github.event.inputs.release_notes }}
-        EOF
+        NOTES_EOF
         
         # Create changelog entry
         {
@@ -187,7 +187,7 @@ jobs:
         fi
         
         rm -f new_entry.txt release_notes_temp.txt
-        echo "Updated CHANGELOG.md"
+        echo "Updated CHANGELOG.md with release notes"
     
     - name: Commit changes
       run: |
@@ -233,6 +233,10 @@ jobs:
         ref: main
         fetch-depth: 0
     
+    - name: Pull latest changes
+      run: |
+        git pull origin main
+    
     - name: Determine version
       id: version
       run: |
@@ -244,26 +248,35 @@ jobs:
         echo "version=$VERSION" >> $GITHUB_OUTPUT
         echo "Creating release for version: $VERSION"
     
-    - name: Extract changelog
-      id: changelog
+    - name: Prepare release notes
+      id: notes
       run: |
         VERSION="${{ steps.version.outputs.version }}"
         
+        # Try to get notes from CHANGELOG first
         if [ -f "CHANGELOG.md" ]; then
+          echo "Extracting from CHANGELOG.md for version $VERSION"
+          
           # Extract this version's changelog section
           awk "/## \[$VERSION\]/,/## \[/" CHANGELOG.md | head -n -1 | tail -n +2 > release_notes.txt
           
           # Check if we got any content
           if [ ! -s release_notes.txt ]; then
-            echo "See [CHANGELOG.md](https://github.com/${{ github.repository }}/blob/main/CHANGELOG.md) for details." > release_notes.txt
+            echo "No CHANGELOG entry found, using manual notes"
+            cat > release_notes.txt << 'MANUAL_EOF'
+        ${{ github.event.inputs.release_notes }}
+        MANUAL_EOF
           fi
         else
-          # Use manual release notes if no CHANGELOG exists
-          cat > release_notes.txt << 'EOF'
+          echo "No CHANGELOG.md, using manual notes"
+          cat > release_notes.txt << 'MANUAL_EOF'
         ${{ github.event.inputs.release_notes }}
-        EOF
+        MANUAL_EOF
         fi
         
+        # Show what we're using
+        echo "Release notes content:"
+        cat release_notes.txt
         echo "Release notes prepared"
     
     - name: Create git tag
@@ -274,22 +287,24 @@ jobs:
         
         # Check if tag already exists
         if git rev-parse "v$VERSION" >/dev/null 2>&1; then
-          echo "Tag v$VERSION already exists, skipping tag creation"
-        else
-          git tag -a "v$VERSION" -m "Release version $VERSION"
-          git push origin "v$VERSION"
-          echo "Created and pushed tag v$VERSION"
+          echo "Tag v$VERSION already exists, deleting and recreating"
+          git tag -d "v$VERSION"
+          git push origin ":refs/tags/v$VERSION" || echo "Tag not on remote"
         fi
+        
+        git tag -a "v$VERSION" -m "Release version $VERSION"
+        git push origin "v$VERSION"
+        echo "Created and pushed tag v$VERSION"
     
     - name: Create GitHub Release
       uses: softprops/action-gh-release@v1
       with:
         tag_name: v${{ steps.version.outputs.version }}
-        name: v${{ steps.version.outputs.version }}
+        name: Release v${{ steps.version.outputs.version }}
         body_path: release_notes.txt
         draft: false
         prerelease: false
-        generate_release_notes: true
+        generate_release_notes: false
 
   summary:
     name: Release Summary
@@ -327,3 +342,9 @@ jobs:
         echo "- [Release v$VERSION](https://github.com/${{ github.repository }}/releases/tag/v$VERSION)" >> $GITHUB_STEP_SUMMARY
         echo "- [All Releases](https://github.com/${{ github.repository }}/releases)" >> $GITHUB_STEP_SUMMARY
         echo "- [Changelog](https://github.com/${{ github.repository }}/blob/main/CHANGELOG.md)" >> $GITHUB_STEP_SUMMARY
+        
+        echo "" >> $GITHUB_STEP_SUMMARY
+        echo "### Release Notes Preview" >> $GITHUB_STEP_SUMMARY
+        echo '```' >> $GITHUB_STEP_SUMMARY
+        echo "${{ github.event.inputs.release_notes }}" >> $GITHUB_STEP_SUMMARY
+        echo '```' >> $GITHUB_STEP_SUMMARY
